@@ -1,20 +1,77 @@
-import { StatusBar } from 'expo-status-bar';
-import { StyleSheet, Text, View } from 'react-native';
+import React from 'react';
+import { NavigationContainer, DarkTheme } from '@react-navigation/native';
+import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
+import { createNativeStackNavigator } from '@react-navigation/native-stack';
+import { Ionicons } from '@expo/vector-icons';
 
-export default function App() {
+import HomeScreen from './src/screens/HomeScreen';
+import QuotesScreen from './src/screens/QuotesScreen';
+import FavoritesScreen from './src/screens/FavoritesScreen';
+import SharinganScreen from './src/screens/SharinganScreen';
+import ImageEditorScreen from './src/screens/ImageEditorScreen';
+import SettingsScreen from './src/screens/SettingsScreen';
+
+const Tab = createBottomTabNavigator();
+const Stack = createNativeStackNavigator();
+
+const AppTheme = {
+  ...DarkTheme,
+  colors: {
+    ...DarkTheme.colors,
+    primary: '#e31b3a',
+    background: '#191c26',
+    card: '#131936',
+    text: '#FFFFFF',
+    border: '#252f69',
+  },
+};
+
+function SharinganStack() {
   return (
-    <View style={styles.container}>
-      <Text>Open up App.tsx to start working on your app!</Text>
-      <StatusBar style="auto" />
-    </View>
+    <Stack.Navigator screenOptions={{ headerShown: false, animation: 'slide_from_right' }}>
+      <Stack.Screen name="Camera" component={SharinganScreen} />
+      <Stack.Screen name="Editor" component={ImageEditorScreen} />
+    </Stack.Navigator>
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#fff',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-});
+export default function App() {
+  return (
+    <NavigationContainer theme={AppTheme}>
+      <Tab.Navigator
+        screenOptions={({ route }) => ({
+          tabBarIcon: ({ focused, color, size }) => {
+            let iconName: keyof typeof Ionicons.glyphMap;
+            if (route.name === 'Início') {
+              iconName = focused ? 'home' : 'home-outline';
+            } else if (route.name === 'Explorar') {
+              iconName = focused ? 'list' : 'list-outline';
+            } else if (route.name === 'Favoritos') {
+              iconName = focused ? 'heart' : 'heart-outline';
+            } else if (route.name === 'Sharingan') {
+              iconName = focused ? 'camera' : 'camera-outline';
+            } else if (route.name === 'Configurações') {
+              iconName = focused ? 'settings' : 'settings-outline';
+            } else {
+              iconName = 'alert-circle';
+            }
+            return <Ionicons name={iconName} size={size} color={color} />;
+          },
+          headerShown: false,
+          tabBarActiveTintColor: AppTheme.colors.primary,
+          tabBarInactiveTintColor: 'gray',
+          tabBarStyle: { 
+            backgroundColor: AppTheme.colors.card,
+            borderTopColor: AppTheme.colors.border,
+          },
+        })}
+      >
+        <Tab.Screen name="Início" component={HomeScreen} />
+        <Tab.Screen name="Explorar" component={QuotesScreen} />
+        <Tab.Screen name="Favoritos" component={FavoritesScreen} />
+        <Tab.Screen name="Sharingan" component={SharinganStack} />
+        <Tab.Screen name="Configurações" component={SettingsScreen} />
+      </Tab.Navigator>
+    </NavigationContainer>
+  );
+}
