@@ -21,13 +21,13 @@ export async function addFavorite(quote: Quote): Promise<void> {
   }
 }
 
-export async function removeFavorite(id: string | number): Promise<void> {
+export async function removeFavorite(id: number): Promise<void> {
   const favs = await getFavorites();
   const newFavs = favs.filter(q => q.id !== id);
   await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(newFavs));
 }
 
-export async function isFavorite(id: string | number): Promise<boolean> {
+export async function isFavorite(id: number): Promise<boolean> {
   const favs = await getFavorites();
   return favs.some(q => q.id === id);
 }

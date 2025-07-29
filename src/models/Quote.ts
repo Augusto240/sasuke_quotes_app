@@ -1,7 +1,7 @@
-export interface Quote {
+export type Quote = {
   id: number;
   quote: string;
   context: string;
-  source: string;
   category: string;
-}
+  source: string;
+};

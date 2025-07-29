@@ -1,36 +1,74 @@
 import React, { useRef, useState, useEffect } from 'react';
-import { View, Text, StyleSheet, ImageBackground, ActivityIndicator, Image, Alert, TouchableOpacity, PanResponder, Animated } from 'react-native';
+import { View, Text, StyleSheet, ImageBackground, ActivityIndicator, Image, Alert, TouchableOpacity } from 'react-native';
 import ViewShot from 'react-native-view-shot';
 import * as Sharing from 'expo-sharing';
 import * as MediaLibrary from 'expo-media-library';
 import Toast from 'react-native-toast-message';
+import { Gesture, GestureDetector } from 'react-native-gesture-handler';
+import Animated, { useSharedValue, useAnimatedStyle, withSpring } from 'react-native-reanimated';
 import { getRandomQuote } from '../api/sasukeApi';
 import { Quote } from '../models/Quote';
 import { Ionicons } from '@expo/vector-icons';
 
-const overlays = [
-  { name: 'Sharingan', img: require('../../assets/sharingan.png') },
-  { name: 'Rinnegan', img: require('../../assets/rinnegan.png') },
-  { name: 'Uchiha', img: require('../../assets/images/uchiwa.png') },
-];
+const stickers = {
+  sharingan: require('../../assets/images/sharingan.png'),
+  rinnegan: require('../../assets/images/rinnegan.png'),
+  uchiha: require('../../assets/images/uchiha.png'),
+};
 
 export default function ImageEditorScreen({ route, navigation }: any) {
   const { imageUri } = route.params;
   const [quote, setQuote] = useState<Quote | null>(null);
   const [textColor, setTextColor] = useState('#FFFFFF');
-  const [selectedOverlay, setSelectedOverlay] = useState(overlays[0].img);
-
-  const pan = useRef(new Animated.ValueXY()).current;
+  const [activeSticker, setActiveSticker] = useState<keyof typeof stickers>('sharingan');
+  
+  const scale = useSharedValue(1);
+  const savedScale = useSharedValue(1);
+  const rotation = useSharedValue(0);
+  const savedRotation = useSharedValue(0);
+  const position = useSharedValue({ x: 0, y: 0 });
+  const savedPosition = useSharedValue({ x: 0, y: 0 });
+  
   const [mediaPermission] = MediaLibrary.usePermissions();
   const viewShotRef = useRef<ViewShot>(null);
 
-  const panResponder = useRef(
-    PanResponder.create({
-      onMoveShouldSetPanResponder: () => true,
-      onPanResponderMove: Animated.event([null, { dx: pan.x, dy: pan.y }], { useNativeDriver: false }),
-      onPanResponderRelease: () => { pan.extractOffset(); },
+  const dragGesture = Gesture.Pan()
+    .onUpdate((e) => {
+      position.value = {
+        x: e.translationX + savedPosition.value.x,
+        y: e.translationY + savedPosition.value.y,
+      };
     })
-  ).current;
+    .onEnd(() => {
+      savedPosition.value = { x: position.value.x, y: position.value.y };
+    });
+
+  const pinchGesture = Gesture.Pinch()
+    .onUpdate((e) => {
+      scale.value = savedScale.value * e.scale;
+    })
+    .onEnd(() => {
+      savedScale.value = scale.value;
+    });
+
+  const rotateGesture = Gesture.Rotation()
+    .onUpdate((e) => {
+      rotation.value = savedRotation.value + e.rotation;
+    })
+    .onEnd(() => {
+      savedRotation.value = rotation.value;
+    });
+
+  const composedGesture = Gesture.Simultaneous(dragGesture, pinchGesture, rotateGesture);
+
+  const animatedStyle = useAnimatedStyle(() => ({
+    transform: [
+      { translateX: position.value.x },
+      { translateY: position.value.y },
+      { scale: scale.value },
+      { rotateZ: `${(rotation.value / Math.PI) * 180}deg` },
+    ],
+  }));
 
   const fetchNewQuote = async () => {
     setQuote(null);
@@ -39,10 +77,8 @@ export default function ImageEditorScreen({ route, navigation }: any) {
 
   useEffect(() => { fetchNewQuote(); }, []);
 
-  const captureView = async (): Promise<string | undefined> => viewShotRef.current?.capture?.();
-
   const onShare = async () => {
-    const uri = await captureView();
+    const uri = await viewShotRef.current?.capture?.();
     if (uri && (await Sharing.isAvailableAsync())) {
       await Sharing.shareAsync(uri);
     } else {
@@ -55,7 +91,7 @@ export default function ImageEditorScreen({ route, navigation }: any) {
       Alert.alert('Permissão da galeria negada.');
       return;
     }
-    const uri = await captureView();
+    const uri = await viewShotRef.current?.capture?.();
     if (uri) {
       await MediaLibrary.saveToLibraryAsync(uri);
       Toast.show({ type: 'success', text1: 'Salvo na galeria!' });
@@ -66,10 +102,12 @@ export default function ImageEditorScreen({ route, navigation }: any) {
     <View style={styles.container}>
       <ViewShot ref={viewShotRef} options={{ format: 'jpg', quality: 0.95 }} style={styles.viewShot}>
         <ImageBackground source={{ uri: imageUri }} style={styles.image}>
-          <Animated.View style={[styles.overlayContainer, { transform: [{ translateX: pan.x }, { translateY: pan.y }] }]} {...panResponder.panHandlers}>
-            <Image source={selectedOverlay} style={styles.overlayImg} />
-          </Animated.View>
-          <View style={styles.fraseBg}>
+          <GestureDetector gesture={composedGesture}>
+            <Animated.View style={[styles.stickerContainer, animatedStyle]}>
+              <Image source={stickers[activeSticker]} style={styles.sticker} />
+            </Animated.View>
+          </GestureDetector>
+          <View style={styles.quoteOverlay}>
             {quote ? (
               <Text style={[styles.quoteText, { color: textColor }]}>"{quote.quote}"</Text>
             ) : (
@@ -78,14 +116,15 @@ export default function ImageEditorScreen({ route, navigation }: any) {
           </View>
         </ImageBackground>
       </ViewShot>
-      <View style={styles.stickerBar}>
-        {overlays.map(o => (
-          <TouchableOpacity key={o.name} onPress={() => setSelectedOverlay(o.img)} style={[styles.stickerBtn, selectedOverlay === o.img && styles.stickerBtnActive]}>
-            <Image source={o.img} style={{ width: 32, height: 32, opacity: selectedOverlay === o.img ? 1 : 0.6 }} />
-          </TouchableOpacity>
-        ))}
-      </View>
-      <View style={styles.controlsBar}>
+
+      <View style={styles.controlsContainer}>
+        <View style={styles.stickerSelector}>
+          {Object.keys(stickers).map((key) => (
+            <TouchableOpacity key={key} onPress={() => setActiveSticker(key as keyof typeof stickers)}>
+              <Image source={stickers[key as keyof typeof stickers]} style={[styles.stickerPreview, activeSticker === key && styles.activeSticker]} />
+            </TouchableOpacity>
+          ))}
+        </View>
         <View style={styles.colorPalette}>
           <TouchableOpacity style={[styles.colorButton, { backgroundColor: '#FFFFFF' }]} onPress={() => setTextColor('#FFFFFF')} />
           <TouchableOpacity style={[styles.colorButton, { backgroundColor: '#e31b3a' }]} onPress={() => setTextColor('#e31b3a')} />
@@ -95,6 +134,7 @@ export default function ImageEditorScreen({ route, navigation }: any) {
           <Ionicons name="refresh" size={24} color="white" />
         </TouchableOpacity>
       </View>
+      
       <View style={styles.buttonRow}>
         <TouchableOpacity style={styles.btn} onPress={onSave}>
           <Ionicons name="save-outline" size={20} color="white" />
@@ -114,21 +154,21 @@ export default function ImageEditorScreen({ route, navigation }: any) {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#191c26' },
+  container: { flex: 1, backgroundColor: '#101010' },
   viewShot: { flex: 1 },
-  image: { flex: 1, resizeMode: 'cover', justifyContent: 'flex-end', borderRadius: 24 },
-  overlayContainer: { position: 'absolute', top: 60, right: 30 },
-  overlayImg: { width: 70, height: 70, opacity: 0.93 },
-  fraseBg: { backgroundColor: 'rgba(0, 0, 0, 0.6)', borderRadius: 16, margin: 16, padding: 20, justifyContent: 'center', minHeight: 70 },
-  quoteText: { fontSize: 20, textAlign: 'center', fontStyle: 'italic', textShadowColor: '#000', textShadowOffset: { width: -1, height: 1 }, textShadowRadius: 10 },
-  stickerBar: { flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: 10, backgroundColor: '#131936', padding: 10 },
-  stickerBtn: { padding: 6, borderRadius: 8 },
-  stickerBtnActive: { backgroundColor: '#e31b3a33' },
-  controlsBar: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 15, paddingVertical: 10, backgroundColor: '#131936' },
+  image: { flex: 1, resizeMode: 'cover' },
+  stickerContainer: { position: 'absolute', top: '25%', left: '40%' },
+  sticker: { width: 80, height: 80 },
+  quoteOverlay: { position: 'absolute', bottom: 0, left: 0, right: 0, backgroundColor: 'rgba(0, 0, 0, 0.6)', padding: 20, justifyContent: 'center', minHeight: '25%' },
+  quoteText: { fontFamily: 'Uchiha', fontSize: 24, textAlign: 'center', textShadowColor: '#000', textShadowOffset: { width: 1, height: 1 }, textShadowRadius: 5 },
+  controlsContainer: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 15, paddingVertical: 10, backgroundColor: '#181818' },
+  stickerSelector: { flexDirection: 'row', gap: 10 },
+  stickerPreview: { width: 30, height: 30, borderRadius: 15, borderWidth: 2, borderColor: 'transparent' },
+  activeSticker: { borderColor: '#e31b3a' },
   colorPalette: { flexDirection: 'row', alignItems: 'center' },
   colorButton: { width: 30, height: 30, borderRadius: 15, marginHorizontal: 5, borderWidth: 2, borderColor: '#fff' },
   controlButton: { padding: 10 },
-  buttonRow: { flexDirection: 'row', justifyContent: 'space-around', alignItems: 'center', paddingVertical: 20, backgroundColor: '#131936', borderTopWidth: 1, borderTopColor: '#252f69' },
+  buttonRow: { flexDirection: 'row', justifyContent: 'space-around', alignItems: 'center', paddingVertical: 20, backgroundColor: '#181818', borderTopWidth: 1, borderTopColor: '#27272a' },
   btn: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#e31b3a', paddingVertical: 11, paddingHorizontal: 18, borderRadius: 30 },
   btnText: { color: 'white', marginLeft: 8, fontWeight: 'bold', fontSize: 15 },
 });

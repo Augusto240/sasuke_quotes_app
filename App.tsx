@@ -1,9 +1,13 @@
+import 'react-native-gesture-handler';
 import React from 'react';
 import { NavigationContainer, DarkTheme } from '@react-navigation/native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
 import Toast from 'react-native-toast-message';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
+import { useFonts } from 'expo-font';
+import { View, ActivityIndicator } from 'react-native';
 
 import HomeScreen from './src/screens/HomeScreen';
 import QuotesScreen from './src/screens/QuotesScreen';
@@ -20,16 +24,16 @@ const AppTheme = {
   colors: {
     ...DarkTheme.colors,
     primary: '#e31b3a',
-    background: '#191c26',
-    card: '#131936',
+    background: '#101010',
+    card: '#181818',
     text: '#FFFFFF',
-    border: '#252f69',
+    border: '#27272a',
   },
 };
 
 function SharinganStack() {
   return (
-    <Stack.Navigator screenOptions={{ headerShown: false, animation: 'fade_from_bottom' }}>
+    <Stack.Navigator screenOptions={{ headerShown: false, animation: 'slide_from_right' }}>
       <Stack.Screen name="Camera" component={SharinganScreen} />
       <Stack.Screen name="Editor" component={ImageEditorScreen} />
     </Stack.Navigator>
@@ -37,34 +41,45 @@ function SharinganStack() {
 }
 
 export default function App() {
+  const [fontsLoaded] = useFonts({
+    'Uchiha': require('./assets/fonts/uchiha.ttf'),
+  });
+
+  if (!fontsLoaded) {
+    return <View style={{ flex: 1, justifyContent: 'center', backgroundColor: AppTheme.colors.background }}><ActivityIndicator size="large" color={AppTheme.colors.primary} /></View>;
+  }
+
   return (
-    <>
+    <GestureHandlerRootView style={{ flex: 1 }}>
       <NavigationContainer theme={AppTheme}>
         <Tab.Navigator
           screenOptions={({ route }) => ({
             tabBarIcon: ({ focused, color, size }) => {
               let iconName: keyof typeof Ionicons.glyphMap = 'alert-circle';
               if (route.name === 'Início') iconName = focused ? 'home' : 'home-outline';
-              if (route.name === 'Explorar') iconName = focused ? 'list' : 'list-outline';
-              if (route.name === 'Favoritos') iconName = focused ? 'heart' : 'heart-outline';
-              if (route.name === 'Sharingan') iconName = focused ? 'camera' : 'camera-outline';
-              if (route.name === 'Configurações') iconName = focused ? 'settings' : 'settings-outline';
+              else if (route.name === 'Explorar') iconName = focused ? 'list' : 'list-outline';
+              else if (route.name === 'Favoritos') iconName = focused ? 'heart' : 'heart-outline';
+              else if (route.name === 'Sharingan') iconName = focused ? 'camera' : 'camera-outline';
+              else if (route.name === 'Ajustes') iconName = focused ? 'settings' : 'settings-outline';
               return <Ionicons name={iconName} size={size} color={color} />;
             },
             headerShown: false,
             tabBarActiveTintColor: AppTheme.colors.primary,
             tabBarInactiveTintColor: 'gray',
-            tabBarStyle: { backgroundColor: AppTheme.colors.card, borderTopColor: AppTheme.colors.border },
+            tabBarStyle: { 
+              backgroundColor: AppTheme.colors.card,
+              borderTopColor: AppTheme.colors.border,
+            },
           })}
         >
           <Tab.Screen name="Início" component={HomeScreen} />
           <Tab.Screen name="Explorar" component={QuotesScreen} />
           <Tab.Screen name="Favoritos" component={FavoritesScreen} />
           <Tab.Screen name="Sharingan" component={SharinganStack} />
-          <Tab.Screen name="Configurações" component={SettingsScreen} />
+          <Tab.Screen name="Ajustes" component={SettingsScreen} />
         </Tab.Navigator>
       </NavigationContainer>
       <Toast />
-    </>
+    </GestureHandlerRootView>
   );
 }

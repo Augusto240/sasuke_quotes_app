@@ -1,5 +1,5 @@
-import React, { useEffect, useState, useRef } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, ActivityIndicator, Animated } from 'react-native';
+import React, { useEffect, useState, useRef, useCallback } from 'react';
+import { View, Text, TouchableOpacity, StyleSheet, ActivityIndicator, Animated, ImageBackground, Image } from 'react-native';
 import * as Speech from 'expo-speech';
 import * as Haptics from 'expo-haptics';
 import { Accelerometer } from 'expo-sensors';
@@ -7,109 +7,102 @@ import { getRandomQuote } from '../api/sasukeApi';
 import { Quote } from '../models/Quote';
 import { addFavorite, isFavorite, removeFavorite } from '../storage/favorites';
 import { Ionicons } from '@expo/vector-icons';
+import Toast from 'react-native-toast-message';
+
+const sasukeImage = require('../../assets/images/sasuke.png');
+const uchihaLogo = require('../../assets/images/uchiwa.png');
 
 export default function HomeScreen() {
   const [quote, setQuote] = useState<Quote | null>(null);
-  const [loading, setLoading] = useState(false);
-  const [fav, setFav] = useState(false);
-  const fade = useRef(new Animated.Value(1)).current;
-  const [subscription, setSubscription] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+  const [isFav, setIsFav] = useState(false);
 
-  const fetchQuote = async () => {
+  const fadeAnim = useRef(new Animated.Value(0)).current;
+
+  const fetchQuote = useCallback(async () => {
     setLoading(true);
-    Animated.timing(fade, { toValue: 0, duration: 120, useNativeDriver: true }).start(async () => {
-      const q = await getRandomQuote();
-      setQuote(q);
-      setFav(await isFavorite(q.id));
-      Animated.timing(fade, { toValue: 1, duration: 120, useNativeDriver: true }).start();
+    Animated.timing(fadeAnim, { toValue: 0, duration: 120, useNativeDriver: true }).start(async () => {
+      const newQuote = await getRandomQuote();
+      setQuote(newQuote);
+      setIsFav(await isFavorite(newQuote.id));
       setLoading(false);
+      Animated.timing(fadeAnim, { toValue: 1, duration: 300, useNativeDriver: true }).start();
     });
-  };
+  }, []);
 
   useEffect(() => {
     fetchQuote();
-    return () => {
-      if (subscription) subscription.remove();
-    };
-  }, []);
-
-  useEffect(() => {
-    const sub = Accelerometer.addListener(accelerometerData => {
-      const total = Math.abs(accelerometerData.x) + Math.abs(accelerometerData.y) + Math.abs(accelerometerData.z);
-      if (total > 2) {
-        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-        fetchQuote();
-      }
+    const sub = Accelerometer.addListener(({ x, y, z }) => {
+      const total = Math.abs(x) + Math.abs(y) + Math.abs(z);
+      if (total > 2.2 && !loading) fetchQuote();
     });
-    setSubscription(sub);
-    return () => sub && sub.remove();
-  }, []);
+    return () => sub.remove();
+  }, [fetchQuote, loading]);
 
   const handleFavorite = async () => {
     if (!quote) return;
-    if (fav) {
+    if (isFav) {
       await removeFavorite(quote.id);
-      setFav(false);
-      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
+      Toast.show({ type: 'error', text1: 'Removido dos Favoritos' });
     } else {
       await addFavorite(quote);
-      setFav(true);
-      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      Toast.show({ type: 'success', text1: 'Adicionado aos Favoritos!' });
     }
+    setIsFav(!isFav);
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
   };
 
   const handleSpeak = () => {
     if (quote) {
-      Speech.speak(quote.quote);
-      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+      Speech.speak(quote.quote, { language: 'ja-JP' });
     }
   };
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Sasuke's Path</Text>
-      <Animated.View style={{ opacity: fade, width: '100%' }}>
-        <View style={styles.quoteBox}>
+      <ImageBackground source={sasukeImage} style={styles.imageBackground} imageStyle={{ opacity: 0.09 }}>
+        <View style={styles.header}>
+          <Image source={uchihaLogo} style={styles.logo} />
+          <Text style={styles.title}>Sasuke's Path</Text>
+          <Text style={styles.subtitle}>Agite para nova citação</Text>
+        </View>
+        <Animated.View style={[styles.quoteContainer, { opacity: fadeAnim }]}>
           {loading || !quote ? (
             <ActivityIndicator size="large" color="#e31b3a" />
           ) : (
             <>
-              <Text style={styles.quote}>"{quote.quote}"</Text>
-              <Text style={styles.context}>{quote.context}</Text>
-              <Text style={styles.info}>{quote.source} - <Text style={styles.category}>{quote.category}</Text></Text>
+              <Text style={styles.quoteText}>"{quote.quote}"</Text>
+              <Text style={styles.sourceText}>{quote.source ? `- ${quote.source}` : ''}</Text>
             </>
           )}
+        </Animated.View>
+        <View style={styles.buttonRow}>
+          <TouchableOpacity style={styles.iconButton} onPress={handleSpeak}>
+            <Ionicons name="volume-high-outline" size={26} color="white" />
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.mainButton} onPress={fetchQuote}>
+            <Ionicons name="refresh" size={24} color="white" />
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.iconButton} onPress={handleFavorite} disabled={!quote}>
+            <Ionicons name={isFav ? "heart" : "heart-outline"} size={26} color={isFav ? "#ff304f" : "white"} />
+          </TouchableOpacity>
         </View>
-      </Animated.View>
-      <View style={styles.buttonRow}>
-        <TouchableOpacity style={styles.btn} onPress={fetchQuote}>
-          <Ionicons name="refresh" size={20} color="white" />
-          <Text style={styles.btnText}>Nova</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.btn} onPress={handleFavorite} disabled={!quote}>
-          <Ionicons name={fav ? "heart" : "heart-outline"} size={20} color={fav ? "#ff304f" : "white"} />
-          <Text style={styles.btnText}>{fav ? "Desfavoritar" : "Favoritar"}</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.btn} onPress={handleSpeak}>
-          <Ionicons name="volume-high" size={20} color="white" />
-          <Text style={styles.btnText}>Ouvir</Text>
-        </TouchableOpacity>
-      </View>
-      <Text style={styles.tip}>Dica: Agite o celular para nova citação</Text>
+      </ImageBackground>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 15, backgroundColor: '#191c26' },
-  title: { fontSize: 28, fontWeight: 'bold', marginTop: 50, marginBottom: 30, letterSpacing: 0.5, color: '#e31b3a' },
-  quoteBox: { borderRadius: 12, backgroundColor: '#131936', padding: 28, minWidth: 300, minHeight: 160, alignItems: 'center', justifyContent: 'center', marginBottom: 25 },
-  quote: { fontSize: 20, color: '#fff', fontStyle: 'italic', marginBottom: 16, textAlign: 'center' },
-  context: { fontSize: 16, color: '#bbb', marginBottom: 4, textAlign: 'center' },
-  info: { fontSize: 14, color: '#bbb', textAlign: 'center' },
-  category: { color: '#e31b3a', fontWeight: 'bold' },
-  buttonRow: { flexDirection: 'row', gap: 16, marginVertical: 12 },
-  btn: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#e31b3a', paddingVertical: 12, paddingHorizontal: 18, borderRadius: 30, marginHorizontal: 5 },
-  btnText: { color: 'white', marginLeft: 8, fontWeight: 'bold', fontSize: 15 },
-  tip: { color: '#aaa', marginTop: 15, fontSize: 13 },
+  container: { flex: 1, backgroundColor: '#101010' },
+  imageBackground: { flex: 1, justifyContent: 'space-between', alignItems: 'center' },
+  header: { alignItems: 'center', paddingTop: 80 },
+  logo: { width: 60, height: 60, resizeMode: 'contain', marginBottom: 12, opacity: 0.8 },
+  title: { fontSize: 36, color: '#fff', fontWeight: 'bold', letterSpacing: 1, textShadowColor: '#e31b3a', textShadowRadius: 10 },
+  subtitle: { color: '#888', fontSize: 15, marginBottom: 10 },
+  quoteContainer: { padding: 20, marginHorizontal: 20, backgroundColor: 'rgba(24,24,24,0.90)', borderRadius: 16, minHeight: 140, justifyContent: 'center', borderWidth: 1, borderColor: '#27272a', marginBottom: 30 },
+  quoteText: { color: '#fff', fontSize: 22, fontStyle: 'italic', textAlign: 'center' },
+  sourceText: { color: '#aaa', fontSize: 13, textAlign: 'right', marginTop: 15 },
+  buttonRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-evenly', width: '100%', paddingBottom: 50 },
+  mainButton: { backgroundColor: '#e31b3a', padding: 20, borderRadius: 50, elevation: 8, shadowColor: '#e31b3a' },
+  iconButton: { padding: 15 },
 });

@@ -1,43 +1,44 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { View, Text, FlatList, TextInput, StyleSheet, TouchableOpacity } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import Toast from 'react-native-toast-message';
-import { getAllQuotes, getQuotesByCategory } from '../api/sasukeApi';
+import { getAllQuotes } from '../api/sasukeApi';
 import { Quote } from '../models/Quote';
 import QuoteCard from '../components/QuoteCard';
 import { addFavorite, getFavorites, removeFavorite } from '../storage/favorites';
 import { Ionicons } from '@expo/vector-icons';
 
-const categories = ["all", "Genin", "Shippuden", "Flashback"];
+const categories = ["Todas", "Genin", "Shippuden", "Flashback"];
 
 export default function QuotesScreen() {
-  const [quotes, setQuotes] = useState<Quote[]>([]);
+  const [allQuotes, setAllQuotes] = useState<Quote[]>([]);
   const [favorites, setFavorites] = useState<number[]>([]);
-  const [selected, setSelected] = useState('all');
+  const [selectedCategory, setSelectedCategory] = useState('Todas');
+  const [searchQuery, setSearchQuery] = useState('');
   const [loading, setLoading] = useState(true);
-  const [search, setSearch] = useState('');
 
-  const fetchQuotes = async (category: string) => {
+  const loadData = async () => {
     setLoading(true);
-    const data = category === 'all' ? await getAllQuotes() : await getQuotesByCategory(category);
-    setQuotes(data);
+    const [quotesData, favsData] = await Promise.all([getAllQuotes(), getFavorites()]);
+    setAllQuotes(quotesData);
+    setFavorites(favsData.map(q => q.id));
     setLoading(false);
   };
+  
+  useFocusEffect(
+    useCallback(() => {
+      loadFavorites();
+    }, [])
+  );
+  
+  useEffect(() => {
+    loadData();
+  }, []);
 
   const loadFavorites = async () => {
     const favs = await getFavorites();
     setFavorites(favs.map(q => q.id));
   };
-
-  useFocusEffect(
-    React.useCallback(() => {
-      loadFavorites();
-    }, [])
-  );
-
-  useEffect(() => {
-    fetchQuotes(selected);
-  }, [selected]);
 
   const handleFavorite = async (quote: Quote) => {
     const isFav = favorites.includes(quote.id);
@@ -50,8 +51,12 @@ export default function QuotesScreen() {
     }
     await loadFavorites();
   };
-
-  const filtered = quotes.filter(q => q.quote.toLowerCase().includes(search.toLowerCase()));
+  
+  const filteredQuotes = useMemo(() => {
+    return allQuotes
+      .filter(q => selectedCategory === 'Todas' || q.category === selectedCategory)
+      .filter(q => q.quote.toLowerCase().includes(searchQuery.toLowerCase()));
+  }, [allQuotes, selectedCategory, searchQuery]);
 
   const renderQuote = ({ item }: { item: Quote }) => {
     const isFav = favorites.includes(item.id);
@@ -69,26 +74,33 @@ export default function QuotesScreen() {
     <View style={styles.container}>
       <Text style={styles.title}>Explorar Citações</Text>
       <TextInput
+        style={styles.searchBar}
         placeholder="Buscar por palavra-chave..."
-        placeholderTextColor="#bbb"
-        value={search}
-        onChangeText={setSearch}
-        style={styles.input}
+        placeholderTextColor="#888"
+        value={searchQuery}
+        onChangeText={setSearchQuery}
       />
-      <View style={styles.catRow}>
-        {categories.map(cat => (
-          <TouchableOpacity key={cat} style={[styles.catBtn, selected === cat && styles.catBtnActive]} onPress={() => setSelected(cat)}>
-            <Text style={[styles.catText, selected === cat && styles.catTextActive]}>
-              {cat === 'all' ? 'Todas' : cat}
-            </Text>
-          </TouchableOpacity>
-        ))}
+      <View>
+        <FlatList
+          horizontal
+          data={categories}
+          keyExtractor={cat => cat}
+          renderItem={({item: cat}) => (
+            <TouchableOpacity style={[styles.catBtn, selectedCategory === cat && styles.catBtnActive]} onPress={() => setSelectedCategory(cat)}>
+              <Text style={[styles.catText, selectedCategory === cat && styles.catTextActive]}>
+                {cat}
+              </Text>
+            </TouchableOpacity>
+          )}
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.catRow}
+        />
       </View>
       {loading ? (
         <Text style={styles.loading}>Carregando...</Text>
       ) : (
         <FlatList
-          data={filtered}
+          data={filteredQuotes}
           keyExtractor={q => q.id.toString()}
           renderItem={renderQuote}
           contentContainerStyle={{ paddingBottom: 30 }}
@@ -99,15 +111,15 @@ export default function QuotesScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, paddingTop: 50, paddingHorizontal: 15, backgroundColor: '#191c26' },
-  title: { color: '#fff', fontSize: 26, fontWeight: 'bold', marginBottom: 14 },
-  input: { backgroundColor: '#131936', color: '#fff', borderRadius: 10, padding: 10, marginBottom: 10, fontSize: 16 },
-  catRow: { flexDirection: 'row', gap: 12, marginBottom: 14 },
-  catBtn: { backgroundColor: '#252f69', borderRadius: 20, paddingHorizontal: 16, paddingVertical: 7 },
+  container: { flex: 1, paddingTop: 60, paddingHorizontal: 15, backgroundColor: '#101010' },
+  title: { color: '#fff', fontSize: 32, fontWeight: 'bold', marginBottom: 20, fontFamily: 'Uchiha' },
+  searchBar: { backgroundColor: '#181818', color: '#fff', borderRadius: 10, padding: 12, marginBottom: 20, fontSize: 16 },
+  catRow: { gap: 12, marginBottom: 14, paddingRight: 20 },
+  catBtn: { backgroundColor: '#27272a', borderRadius: 20, paddingHorizontal: 16, paddingVertical: 7 },
   catBtnActive: { backgroundColor: '#e31b3a' },
   catText: { color: '#aaa', fontWeight: 'bold' },
   catTextActive: { color: '#fff' },
   loading: { color: '#fff', marginTop: 50, alignSelf: 'center' },
-  cardContainer: { marginBottom: 10, borderRadius: 10, overflow: 'hidden', backgroundColor: '#16182c', elevation: 2, position: 'relative' },
-  favButton: { position: 'absolute', top: 12, right: 12, zIndex: 10, backgroundColor: '#20223b', borderRadius: 24, padding: 6 },
+  cardContainer: { marginBottom: 10, borderRadius: 10, overflow: 'hidden', backgroundColor: '#181818', elevation: 2, position: 'relative' },
+  favButton: { position: 'absolute', top: 12, right: 12, zIndex: 10, backgroundColor: 'rgba(0,0,0,0.3)', borderRadius: 24, padding: 6 },
 });

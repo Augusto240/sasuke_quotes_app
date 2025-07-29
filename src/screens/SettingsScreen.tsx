@@ -1,19 +1,28 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, Switch, TouchableOpacity, Platform } from 'react-native';
+import { View, Text, StyleSheet, Switch, TouchableOpacity, Alert, Platform } from 'react-native';
 import DateTimePicker, { DateTimePickerEvent } from '@react-native-community/datetimepicker';
-import { scheduleDailyNotification, cancelAllNotifications } from '../utils/notifications';
+import { getRandomQuote } from '../api/sasukeApi';
+import { requestNotificationPermission, scheduleDailyQuoteNotification } from '../utils/notifications';
 
 export default function SettingsScreen() {
   const [enabled, setEnabled] = useState(false);
   const [time, setTime] = useState(new Date());
   const [showPicker, setShowPicker] = useState(false);
 
+  useEffect(() => { requestNotificationPermission(); }, []);
+
   const toggleSwitch = async (value: boolean) => {
     setEnabled(value);
     if (value) {
-      await scheduleDailyNotification(time);
+      const hasPerm = await requestNotificationPermission();
+      if (!hasPerm) return Alert.alert('Permissão negada', 'Não foi possível ativar notificações.');
+      const quote = await getRandomQuote();
+      await scheduleDailyQuoteNotification(time, quote);
+      Alert.alert('Sucesso!', `Notificações diárias agendadas para as ${time.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}h.`);
     } else {
-      await cancelAllNotifications();
+      const Notifications = require('expo-notifications');
+      await Notifications.cancelAllScheduledNotificationsAsync();
+      Alert.alert('Notificações diárias desativadas.');
     }
   };
 
@@ -22,7 +31,9 @@ export default function SettingsScreen() {
     if (selectedTime) {
       setTime(selectedTime);
       if (enabled) {
-        scheduleDailyNotification(selectedTime);
+        getRandomQuote().then(quote =>
+          scheduleDailyQuoteNotification(selectedTime, quote)
+        );
       }
     }
   };
@@ -38,7 +49,9 @@ export default function SettingsScreen() {
         <View style={styles.row}>
           <Text style={styles.label}>Horário</Text>
           <TouchableOpacity onPress={() => setShowPicker(true)}>
-            <Text style={styles.timeText}>{time.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}</Text>
+            <Text style={styles.timeText}>
+              {time.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
+            </Text>
           </TouchableOpacity>
         </View>
       )}
