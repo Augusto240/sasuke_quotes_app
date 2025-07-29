@@ -1,29 +1,19 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, Switch, TouchableOpacity, Alert, Platform } from 'react-native';
-import { getRandomQuote } from '../api/sasukeApi';
+import { View, Text, StyleSheet, Switch, TouchableOpacity, Platform } from 'react-native';
 import DateTimePicker, { DateTimePickerEvent } from '@react-native-community/datetimepicker';
-import { requestNotificationPermission, scheduleDailyQuoteNotification } from '../utils/notifications';
+import { scheduleDailyNotification, cancelAllNotifications } from '../utils/notifications';
 
 export default function SettingsScreen() {
   const [enabled, setEnabled] = useState(false);
   const [time, setTime] = useState(new Date());
   const [showPicker, setShowPicker] = useState(false);
 
-  useEffect(() => { requestNotificationPermission(); }, []);
-
   const toggleSwitch = async (value: boolean) => {
     setEnabled(value);
     if (value) {
-      const hasPerm = await requestNotificationPermission();
-      if (!hasPerm) return Alert.alert('Permissão negada', 'Não foi possível ativar notificações.');
-      const quote = await getRandomQuote();
-      await scheduleDailyQuoteNotification(time, quote);
-      Alert.alert('Sucesso!', `Notificações diárias agendadas para as ${time.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}h.`);
+      await scheduleDailyNotification(time);
     } else {
-      // Cancela todas
-      const Notifications = require('expo-notifications');
-      await Notifications.cancelAllScheduledNotificationsAsync();
-      Alert.alert('Notificações diárias desativadas.');
+      await cancelAllNotifications();
     }
   };
 
@@ -32,9 +22,7 @@ export default function SettingsScreen() {
     if (selectedTime) {
       setTime(selectedTime);
       if (enabled) {
-        getRandomQuote().then(quote =>
-          scheduleDailyQuoteNotification(selectedTime, quote)
-        );
+        scheduleDailyNotification(selectedTime);
       }
     }
   };
