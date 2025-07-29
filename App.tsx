@@ -41,7 +41,7 @@ export default function App() {
       <Tab.Navigator
         screenOptions={({ route }) => ({
           tabBarIcon: ({ focused, color, size }) => {
-            let iconName: keyof typeof Ionicons.glyphMap;
+            let iconName: keyof typeof Ionicons.glyphMap = 'alert-circle';
             if (route.name === 'Início') {
               iconName = focused ? 'home' : 'home-outline';
             } else if (route.name === 'Explorar') {
@@ -52,8 +52,6 @@ export default function App() {
               iconName = focused ? 'camera' : 'camera-outline';
             } else if (route.name === 'Configurações') {
               iconName = focused ? 'settings' : 'settings-outline';
-            } else {
-              iconName = 'alert-circle';
             }
             return <Ionicons name={iconName} size={size} color={color} />;
           },

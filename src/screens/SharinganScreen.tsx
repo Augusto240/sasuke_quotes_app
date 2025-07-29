@@ -13,7 +13,7 @@ export default function SharinganScreen() {
     if (!permission) {
       requestPermission();
     }
-  }, []);
+  }, [permission]);
 
   const takePhoto = async () => {
     if (cameraRef.current) {
@@ -26,10 +26,10 @@ export default function SharinganScreen() {
 
   if (!permission?.granted) {
     return (
-      <View style={styles.container}>
-        <Text style={styles.msg}>A permissão da câmara é necessária para usar a Visão do Sharingan.</Text>
-        <TouchableOpacity style={styles.btn} onPress={requestPermission}>
-          <Text style={styles.btnText}>Conceder Permissão</Text>
+      <View style={styles.permissionContainer}>
+        <Text style={styles.permissionText}>A permissão da câmara é necessária para usar a Visão do Sharingan.</Text>
+        <TouchableOpacity style={styles.permissionButton} onPress={requestPermission}>
+          <Text style={styles.permissionButtonText}>Conceder Permissão</Text>
         </TouchableOpacity>
       </View>
     );
@@ -37,32 +37,34 @@ export default function SharinganScreen() {
 
   return (
     <View style={styles.container}>
-      <CameraView ref={cameraRef} style={styles.camera} facing="back">
-        <View style={styles.buttonContainer}>
-          <TouchableOpacity style={styles.captureButton} onPress={takePhoto}>
-            <Ionicons name="ellipse-outline" size={80} color="white" />
-          </TouchableOpacity>
-        </View>
-      </CameraView>
+      <CameraView ref={cameraRef} style={styles.camera} facing="back" />
+      <View style={styles.buttonContainer}>
+        <TouchableOpacity style={styles.captureButton} onPress={takePhoto}>
+          <Ionicons name="ellipse-outline" size={80} color="white" />
+        </TouchableOpacity>
+      </View>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#191c26', justifyContent: 'center' },
+  container: { flex: 1, backgroundColor: '#191c26' },
+  permissionContainer: { flex: 1, backgroundColor: '#191c26', justifyContent: 'center', alignItems: 'center', padding: 20 },
   camera: { flex: 1 },
   buttonContainer: {
-    flex: 1,
-    backgroundColor: 'transparent',
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
     flexDirection: 'row',
     justifyContent: 'center',
-    margin: 20,
+    padding: 20,
+    backgroundColor: 'transparent',
   },
   captureButton: {
-    alignSelf: 'flex-end',
     alignItems: 'center',
   },
-  msg: { color: '#fff', textAlign: 'center', marginBottom: 20, fontSize: 16, paddingHorizontal: 20 },
-  btn: { alignItems: 'center', backgroundColor: '#e31b3a', paddingVertical: 11, paddingHorizontal: 18, borderRadius: 30 },
-  btnText: { color: 'white', fontWeight: 'bold', fontSize: 15 },
+  permissionText: { color: '#fff', textAlign: 'center', marginBottom: 20, fontSize: 16 },
+  permissionButton: { alignItems: 'center', backgroundColor: '#e31b3a', paddingVertical: 11, paddingHorizontal: 18, borderRadius: 30 },
+  permissionButtonText: { color: 'white', fontWeight: 'bold', fontSize: 15 },
 });

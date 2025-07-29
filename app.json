@@ -1,16 +1,15 @@
 {
   "expo": {
-    "name": "sasuke_quotes",
-    "slug": "sasuke_quotes",
+    "name": "Sasuke's Path",
+    "slug": "sasukes-path",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
-    "userInterfaceStyle": "light",
-    "newArchEnabled": true,
+    "userInterfaceStyle": "dark",
     "splash": {
-      "image": "./assets/splash-icon.png",
+      "image": "./assets/splash.png",
       "resizeMode": "contain",
-      "backgroundColor": "#ffffff"
+      "backgroundColor": "#191c26"
     },
     "ios": {
       "supportsTablet": true
@@ -18,12 +17,28 @@
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
-        "backgroundColor": "#ffffff"
+        "backgroundColor": "#191c26"
       },
-      "edgeToEdgeEnabled": true
+      "package": "com.augusto.sasukepath"
     },
     "web": {
       "favicon": "./assets/favicon.png"
-    }
+    },
+    "plugins": [
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "Permitir que o Sasuke's Path acesse sua câmera para usar a Visão do Sharingan."
+        }
+      ],
+      [
+        "expo-media-library",
+        {
+          "photosPermission": "Permitir que o Sasuke's Path salve imagens na sua galeria.",
+          "savePhotosPermission": "Permitir que o Sasuke's Path salve imagens na sua galeria.",
+          "isAccessMediaLocationEnabled": true
+        }
+      ]
+    ]
   }
 }

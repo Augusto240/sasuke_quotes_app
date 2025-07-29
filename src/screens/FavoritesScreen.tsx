@@ -1,8 +1,9 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { View, Text, FlatList, StyleSheet } from 'react-native';
 import { getFavorites } from '../storage/favorites';
 import { Quote } from '../models/Quote';
 import QuoteCard from '../components/QuoteCard';
+import { useFocusEffect } from '@react-navigation/native';
 
 export default function FavoritesScreen() {
   const [quotes, setQuotes] = useState<Quote[]>([]);
@@ -11,9 +12,7 @@ export default function FavoritesScreen() {
     setQuotes(await getFavorites());
   };
 
-  useEffect(() => {
-    loadFavs();
-  }, []);
+  useFocusEffect(useCallback(() => { loadFavs(); }, []));
 
   return (
     <View style={styles.container}>
