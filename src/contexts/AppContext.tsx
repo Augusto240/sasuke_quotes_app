@@ -1,124 +1,137 @@
-import React, { createContext, useContext, useReducer, useEffect, useMemo } from 'react';
+import React, { createContext, useContext, useEffect, useState, ReactNode, useCallback } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Quote } from '../models/Quote';
 
-interface AppState {
+type Theme = 'light' | 'dark';
+type Language = 'pt' | 'en' | 'ja';
+
+interface AppContextType {
+  theme: Theme;
+  language: Language;
   favorites: Quote[];
-  theme: 'dark' | 'light';
-  language: 'pt' | 'en' | 'ja';
   hasSeenOnboarding: boolean;
-  isLoading: boolean;
+  setTheme: (theme: Theme) => void;
+  setLanguage: (language: Language) => void;
+  addFavorite: (quote: Quote) => Promise<void>;
+  removeFavorite: (id: number) => Promise<void>;
+  markOnboardingComplete: () => Promise<void>;
 }
 
-interface AppContextValue extends AppState {
-  addFavorite: (quote: Quote) => void;
-  removeFavorite: (id: number) => void;
-  toggleTheme: () => void;
-  setLanguage: (lang: 'pt' | 'en' | 'ja') => void;
-  markOnboardingComplete: () => void;
-  setLoading: (loading: boolean) => void;
-}
+const AppContext = createContext<AppContextType | undefined>(undefined);
 
-const initialState: AppState = {
-  favorites: [],
-  theme: 'dark',
-  language: 'pt',
-  hasSeenOnboarding: false,
-  isLoading: false,
+const STORAGE_KEYS = {
+  THEME: '@sasuke_app:theme',
+  LANGUAGE: '@sasuke_app:language',
+  FAVORITES: '@sasuke_app:favorites',
+  ONBOARDING: '@sasuke_app:onboarding_complete',
 };
 
-type AppAction =
-  | { type: 'SET_FAVORITES'; payload: Quote[] }
-  | { type: 'ADD_FAVORITE'; payload: Quote }
-  | { type: 'REMOVE_FAVORITE'; payload: number }
-  | { type: 'TOGGLE_THEME' }
-  | { type: 'SET_LANGUAGE'; payload: 'pt' | 'en' | 'ja' }
-  | { type: 'MARK_ONBOARDING_COMPLETE' }
-  | { type: 'SET_LOADING'; payload: boolean }
-  | { type: 'HYDRATE'; payload: Partial<AppState> };
+export function AppProvider({ children }: { children: ReactNode }) {
+  const [theme, setThemeState] = useState<Theme>('dark');
+  const [language, setLanguageState] = useState<Language>('pt');
+  const [favorites, setFavorites] = useState<Quote[]>([]);
+  const [hasSeenOnboarding, setHasSeenOnboarding] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
 
-function appReducer(state: AppState, action: AppAction): AppState {
-  switch (action.type) {
-    case 'SET_FAVORITES':
-      return { ...state, favorites: action.payload };
-    case 'ADD_FAVORITE':
-      if (state.favorites.some(q => q.id === action.payload.id)) return state;
-      return { ...state, favorites: [action.payload, ...state.favorites] };
-    case 'REMOVE_FAVORITE':
-      return { ...state, favorites: state.favorites.filter(q => q.id !== action.payload) };
-    case 'TOGGLE_THEME':
-      return { ...state, theme: state.theme === 'dark' ? 'light' : 'dark' };
-    case 'SET_LANGUAGE':
-      return { ...state, language: action.payload };
-    case 'MARK_ONBOARDING_COMPLETE':
-      return { ...state, hasSeenOnboarding: true };
-    case 'SET_LOADING':
-      return { ...state, isLoading: action.payload };
-    case 'HYDRATE':
-      return { ...state, ...action.payload };
-    default:
-      return state;
-  }
-}
-
-export const AppContext = createContext<AppContextValue | undefined>(undefined);
-
-export function AppProvider({ children }: { children: React.ReactNode }) {
-  const [state, dispatch] = useReducer(appReducer, initialState);
-
+  // Load saved data on app start
   useEffect(() => {
-    const loadState = async () => {
-      try {
-        const [favorites, theme, language, onboarding] = await Promise.all([
-          AsyncStorage.getItem('favorites'),
-          AsyncStorage.getItem('theme'),
-          AsyncStorage.getItem('language'),
-          AsyncStorage.getItem('hasSeenOnboarding'),
-        ]);
-
-        dispatch({
-          type: 'HYDRATE',
-          payload: {
-            favorites: favorites ? JSON.parse(favorites) : [],
-            theme: (theme as 'dark' | 'light') || 'dark',
-            language: (language as 'pt' | 'en' | 'ja') || 'pt',
-            hasSeenOnboarding: onboarding === 'true',
-          },
-        });
-      } catch (error) {
-        console.error('Error loading app state:', error);
-      }
-    };
-    loadState();
+    loadSavedData();
   }, []);
 
-  useEffect(() => {
-    AsyncStorage.setItem('favorites', JSON.stringify(state.favorites));
-  }, [state.favorites]);
+  const loadSavedData = async () => {
+    try {
+      const [savedTheme, savedLanguage, savedFavorites, savedOnboarding] = await Promise.all([
+        AsyncStorage.getItem(STORAGE_KEYS.THEME),
+        AsyncStorage.getItem(STORAGE_KEYS.LANGUAGE),
+        AsyncStorage.getItem(STORAGE_KEYS.FAVORITES),
+        AsyncStorage.getItem(STORAGE_KEYS.ONBOARDING),
+      ]);
 
-  useEffect(() => {
-    AsyncStorage.setItem('theme', state.theme);
-  }, [state.theme]);
-
-  useEffect(() => {
-    AsyncStorage.setItem('language', state.language);
-  }, [state.language]);
-
-  useEffect(() => {
-    AsyncStorage.setItem('hasSeenOnboarding', state.hasSeenOnboarding.toString());
-  }, [state.hasSeenOnboarding]);
-
-  const contextValue: AppContextValue = {
-    ...state,
-    addFavorite: (quote: Quote) => dispatch({ type: 'ADD_FAVORITE', payload: quote }),
-    removeFavorite: (id: number) => dispatch({ type: 'REMOVE_FAVORITE', payload: id }),
-    toggleTheme: () => dispatch({ type: 'TOGGLE_THEME' }),
-    setLanguage: (lang: 'pt' | 'en' | 'ja') => dispatch({ type: 'SET_LANGUAGE', payload: lang }),
-    markOnboardingComplete: () => dispatch({ type: 'MARK_ONBOARDING_COMPLETE' }),
-    setLoading: (loading: boolean) => dispatch({ type: 'SET_LOADING', payload: loading }),
+      if (savedTheme) setThemeState(savedTheme as Theme);
+      if (savedLanguage) setLanguageState(savedLanguage as Language);
+      if (savedFavorites) {
+        const parsedFavorites = JSON.parse(savedFavorites);
+        setFavorites(Array.isArray(parsedFavorites) ? parsedFavorites : []);
+      }
+      if (savedOnboarding) setHasSeenOnboarding(JSON.parse(savedOnboarding));
+    } catch (error) {
+      console.error('Error loading saved data:', error);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
-  return <AppContext.Provider value={contextValue}>{children}</AppContext.Provider>;
+  const setTheme = useCallback(async (newTheme: Theme) => {
+    try {
+      setThemeState(newTheme);
+      await AsyncStorage.setItem(STORAGE_KEYS.THEME, newTheme);
+    } catch (error) {
+      console.error('Error saving theme:', error);
+    }
+  }, []);
+
+  const setLanguage = useCallback(async (newLanguage: Language) => {
+    try {
+      setLanguageState(newLanguage);
+      await AsyncStorage.setItem(STORAGE_KEYS.LANGUAGE, newLanguage);
+    } catch (error) {
+      console.error('Error saving language:', error);
+    }
+  }, []);
+
+  const addFavorite = useCallback(async (quote: Quote) => {
+    try {
+      const exists = favorites.some(fav => fav.id === quote.id);
+      if (exists) return;
+
+      const newFavorites = [...favorites, quote];
+      setFavorites(newFavorites);
+      await AsyncStorage.setItem(STORAGE_KEYS.FAVORITES, JSON.stringify(newFavorites));
+    } catch (error) {
+      console.error('Error adding favorite:', error);
+      // Revert on error
+      setFavorites(favorites);
+    }
+  }, [favorites]);
+
+  const removeFavorite = useCallback(async (id: number) => {
+    try {
+      const newFavorites = favorites.filter(fav => fav.id !== id);
+      setFavorites(newFavorites);
+      await AsyncStorage.setItem(STORAGE_KEYS.FAVORITES, JSON.stringify(newFavorites));
+    } catch (error) {
+      console.error('Error removing favorite:', error);
+      // Revert on error
+      setFavorites(favorites);
+    }
+  }, [favorites]);
+
+  const markOnboardingComplete = useCallback(async () => {
+    try {
+      setHasSeenOnboarding(true);
+      await AsyncStorage.setItem(STORAGE_KEYS.ONBOARDING, JSON.stringify(true));
+    } catch (error) {
+      console.error('Error marking onboarding complete:', error);
+    }
+  }, []);
+
+  if (isLoading) {
+    return null; // or a loading spinner
+  }
+
+  const value: AppContextType = {
+    theme,
+    language,
+    favorites,
+    hasSeenOnboarding,
+    setTheme,
+    setLanguage,
+    addFavorite,
+    removeFavorite,
+    markOnboardingComplete,
+  };
+
+  return <AppContext.Provider value={value}>{children}</AppContext.Provider>;
 }
 
 export function useApp() {

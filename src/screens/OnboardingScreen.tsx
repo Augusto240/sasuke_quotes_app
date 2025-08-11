@@ -6,7 +6,7 @@ import { useApp } from '../contexts/AppContext';
 import { darkTheme, lightTheme, Theme } from '../theme';
 import i18n from '../i18n';
 
-const { width } = Dimensions.get('window');
+const { width, height } = Dimensions.get('window');
 
 const onboardingSteps = [
   {
@@ -47,12 +47,13 @@ export default function OnboardingScreen({ onComplete }: { onComplete: () => voi
 
   const handleNext = () => {
     if (currentStep < onboardingSteps.length - 1) {
+      const nextStep = currentStep + 1;
       Animated.timing(slideAnimation, {
-        toValue: -(currentStep + 1) * width,
-        duration: 300,
+        toValue: -nextStep * width,
+        duration: 350,
         useNativeDriver: true,
       }).start();
-      setCurrentStep(currentStep + 1);
+      setCurrentStep(nextStep);
     } else {
       onComplete();
     }
@@ -67,14 +68,16 @@ export default function OnboardingScreen({ onComplete }: { onComplete: () => voi
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
-        <TouchableOpacity onPress={handleSkip} style={styles.skipButton}>
+        <TouchableOpacity onPress={handleSkip} style={styles.skipButton} activeOpacity={0.7}>
           <Text style={styles.skipText}>{i18n.t('onboarding.skip')}</Text>
         </TouchableOpacity>
       </View>
 
       <View style={styles.content}>
-        <Text style={styles.welcomeText}>{i18n.t('onboarding.welcome')}</Text>
-        <Text style={styles.titleText}>Sasuke's Path</Text>
+        <View style={styles.welcomeSection}>
+          <Text style={styles.welcomeText}>{i18n.t('onboarding.welcome')}</Text>
+          <Text style={styles.titleText}>Sasuke's Path</Text>
+        </View>
 
         <View style={styles.stepsContainer}>
           <Animated.View
@@ -90,31 +93,36 @@ export default function OnboardingScreen({ onComplete }: { onComplete: () => voi
                 <View style={styles.imageContainer}>
                   <Image source={step.image} style={styles.stepImage} resizeMode="contain" />
                   <View style={styles.iconContainer}>
-                    <Ionicons name={step.icon as any} size={30} color={theme.colors.primary} />
+                    <Ionicons name={step.icon as any} size={28} color={theme.colors.primary} />
                   </View>
                 </View>
-                <Text style={styles.stepTitle}>{i18n.t(step.titleKey)}</Text>
-                <Text style={styles.stepDescription}>{i18n.t(step.descriptionKey)}</Text>
+                
+                <View style={styles.textContainer}>
+                  <Text style={styles.stepTitle}>{i18n.t(step.titleKey)}</Text>
+                  <Text style={styles.stepDescription}>{i18n.t(step.descriptionKey)}</Text>
+                </View>
               </View>
             ))}
           </Animated.View>
         </View>
 
-        <View style={styles.indicators}>
-          {onboardingSteps.map((_, index) => (
-            <View
-              key={index}
-              style={[
-                styles.indicator,
-                index === currentStep && styles.activeIndicator,
-              ]}
-            />
-          ))}
+        <View style={styles.indicatorsContainer}>
+          <View style={styles.indicators}>
+            {onboardingSteps.map((_, index) => (
+              <View
+                key={index}
+                style={[
+                  styles.indicator,
+                  index === currentStep && styles.activeIndicator,
+                ]}
+              />
+            ))}
+          </View>
         </View>
       </View>
 
       <View style={styles.footer}>
-        <TouchableOpacity onPress={handleNext} style={styles.nextButton}>
+        <TouchableOpacity onPress={handleNext} style={styles.nextButton} activeOpacity={0.8}>
           <Text style={styles.nextText}>
             {currentStep === onboardingSteps.length - 1
               ? i18n.t('onboarding.finish')
@@ -138,82 +146,107 @@ const createStyles = (theme: Theme) =>
       justifyContent: 'flex-end',
       paddingHorizontal: 20,
       paddingTop: 10,
+      height: 60,
     },
     skipButton: {
-      padding: 10,
+      padding: 12,
+      borderRadius: 8,
     },
     skipText: {
       color: theme.colors.textSecondary,
       fontSize: 16,
+      fontWeight: '500',
     },
     content: {
       flex: 1,
-      alignItems: 'center',
-      justifyContent: 'center',
+      justifyContent: 'space-between',
       paddingHorizontal: 20,
+    },
+    welcomeSection: {
+      alignItems: 'center',
+      paddingTop: 20,
+      marginBottom: 30,
     },
     welcomeText: {
       fontSize: 18,
       color: theme.colors.textSecondary,
       marginBottom: 8,
+      textAlign: 'center',
     },
     titleText: {
-      fontSize: 36,
+      fontSize: Math.min(width * 0.09, 36),
       fontWeight: 'bold',
       color: theme.colors.primary,
-      marginBottom: 40,
       fontFamily: 'Uchiha',
+      textAlign: 'center',
     },
     stepsContainer: {
-      height: 400,
+      flex: 1,
+      maxHeight: height * 0.55,
       overflow: 'hidden',
     },
     stepsWrapper: {
       flexDirection: 'row',
+      height: '100%',
     },
     step: {
       width,
       alignItems: 'center',
+      justifyContent: 'center',
       paddingHorizontal: 40,
     },
     imageContainer: {
-      width: 200,
-      height: 200,
+      width: Math.min(width * 0.5, 200),
+      height: Math.min(width * 0.5, 200),
       justifyContent: 'center',
       alignItems: 'center',
-      marginBottom: 30,
+      marginBottom: 40,
       position: 'relative',
     },
     stepImage: {
-      width: 150,
-      height: 150,
+      width: '75%',
+      height: '75%',
       opacity: 0.3,
     },
     iconContainer: {
       position: 'absolute',
-      bottom: 20,
-      right: 20,
+      bottom: 10,
+      right: 10,
       backgroundColor: theme.colors.card,
       borderRadius: 25,
-      padding: 10,
+      padding: 12,
       elevation: 3,
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.1,
+      shadowRadius: 4,
+    },
+    textContainer: {
+      alignItems: 'center',
+      paddingHorizontal: 10,
     },
     stepTitle: {
       fontSize: 24,
       fontWeight: 'bold',
       color: theme.colors.text,
       textAlign: 'center',
-      marginBottom: 15,
+      marginBottom: 16,
+      lineHeight: 30,
     },
     stepDescription: {
       fontSize: 16,
       color: theme.colors.textSecondary,
       textAlign: 'center',
       lineHeight: 24,
+      paddingHorizontal: 10,
+    },
+    indicatorsContainer: {
+      alignItems: 'center',
+      paddingVertical: 30,
     },
     indicators: {
       flexDirection: 'row',
-      marginTop: 30,
+      alignItems: 'center',
     },
     indicator: {
       width: 8,
@@ -235,9 +268,14 @@ const createStyles = (theme: Theme) =>
       flexDirection: 'row',
       alignItems: 'center',
       justifyContent: 'center',
-      paddingVertical: 15,
+      paddingVertical: 16,
       borderRadius: 30,
       gap: 10,
+      elevation: 3,
+      shadowColor: theme.colors.primary,
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.3,
+      shadowRadius: 4,
     },
     nextText: {
       color: '#fff',

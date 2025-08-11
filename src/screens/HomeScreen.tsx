@@ -1,6 +1,7 @@
 import React, { useEffect, useState, useRef, useCallback } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, ActivityIndicator, Animated, ImageBackground, Image, RefreshControl } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, ImageBackground, Image, RefreshControl, Dimensions } from 'react-native';
 import { ScrollView } from 'react-native-gesture-handler';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import * as Speech from 'expo-speech';
 import * as Haptics from 'expo-haptics';
 import { Accelerometer } from 'expo-sensors';
@@ -11,9 +12,9 @@ import { darkTheme, lightTheme, Theme } from '../theme';
 import { Ionicons } from '@expo/vector-icons';
 import Toast from 'react-native-toast-message';
 import i18n from '../i18n';
-import { QuoteCardSkeleton } from '../components/LoadingSkeleton';
 import ErrorBoundary from '../components/ErrorBoundary';
 
+const { width, height } = Dimensions.get('window');
 const sasukeImage = require('../../assets/images/sasuke.png');
 const uchihaLogo = require('../../assets/images/uchiwa.png');
 
@@ -22,72 +23,43 @@ export default function HomeScreen() {
   const theme = themeMode === 'dark' ? darkTheme : lightTheme;
   
   const [quote, setQuote] = useState<Quote | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [isInitialLoad, setIsInitialLoad] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  
-  const fadeAnim = useRef(new Animated.Value(0)).current;
-  const scaleAnim = useRef(new Animated.Value(1)).current;
 
   const isFavorite = quote ? favorites.some(fav => fav.id === quote.id) : false;
 
-  const fetchQuote = useCallback(async (showLoading = true) => {
-    if (showLoading) setLoading(true);
+  const fetchQuote = useCallback(async (showRefresh = false) => {
+    if (showRefresh) setRefreshing(true);
     
-    Animated.timing(fadeAnim, { 
-      toValue: 0, 
-      duration: 200, 
-      useNativeDriver: true 
-    }).start(async () => {
-      try {
-        const newQuote = await getRandomQuote();
-        setQuote(newQuote);
-        
-        Animated.parallel([
-          Animated.timing(fadeAnim, { 
-            toValue: 1, 
-            duration: 500, 
-            useNativeDriver: true 
-          }),
-          Animated.sequence([
-            Animated.timing(scaleAnim, { 
-              toValue: 1.05, 
-              duration: 200, 
-              useNativeDriver: true 
-            }),
-            Animated.timing(scaleAnim, { 
-              toValue: 1, 
-              duration: 200, 
-              useNativeDriver: true 
-            }),
-          ])
-        ]).start();
-      } catch (error) {
-        console.error('Error fetching quote:', error);
-        Toast.show({
-          type: 'error',
-          text1: i18n.t('common.error'),
-          text2: i18n.t('common.noConnection')
-        });
-      } finally {
-        setLoading(false);
-        setRefreshing(false);
-      }
-    });
-  }, [fadeAnim, scaleAnim]);
+    try {
+      const newQuote = await getRandomQuote();
+      setQuote(newQuote);
+    } catch (error) {
+      console.error('Error fetching quote:', error);
+      Toast.show({
+        type: 'error',
+        text1: i18n.t('common.error'),
+        text2: i18n.t('common.noConnection')
+      });
+    } finally {
+      setIsInitialLoad(false);
+      setRefreshing(false);
+    }
+  }, []);
 
   useEffect(() => {
     fetchQuote();
     
     const subscription = Accelerometer.addListener(({ x, y, z }) => {
       const acceleration = Math.sqrt(x ** 2 + y ** 2 + z ** 2);
-      if (acceleration > 2.5 && !loading && !refreshing) {
+      if (acceleration > 2.5 && !isInitialLoad && !refreshing) {
         Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
         fetchQuote();
       }
     });
     
     return () => subscription.remove();
-  }, [fetchQuote, loading, refreshing]);
+  }, [fetchQuote, isInitialLoad, refreshing]);
 
   const handleFavorite = async () => {
     if (!quote) return;
@@ -97,7 +69,7 @@ export default function HomeScreen() {
     if (isFavorite) {
       removeFavorite(quote.id);
       Toast.show({ 
-        type: 'error', 
+        type: 'info', 
         text1: i18n.t('favorites.removed') 
       });
     } else {
@@ -121,154 +93,199 @@ export default function HomeScreen() {
   };
 
   const onRefresh = useCallback(() => {
-    setRefreshing(true);
-    fetchQuote(false);
+    fetchQuote(true);
   }, [fetchQuote]);
 
-  const styles = createStyles(theme);
+  const styles = createStyles(theme, themeMode);
 
   return (
     <ErrorBoundary>
-      <ScrollView 
-        style={styles.container}
-        refreshControl={
-          <RefreshControl 
-            refreshing={refreshing} 
-            onRefresh={onRefresh}
-            colors={[theme.colors.primary]}
-            tintColor={theme.colors.primary}
-          />
-        }
-      >
-        <ImageBackground 
-          source={sasukeImage} 
-          style={styles.imageBackground} 
-          imageStyle={{ opacity: themeMode === 'dark' ? 0.09 : 0.05 }}
+      <SafeAreaView style={styles.container}>
+        <ScrollView 
+          contentContainerStyle={styles.scrollContent}
+          refreshControl={
+            <RefreshControl 
+              refreshing={refreshing} 
+              onRefresh={onRefresh}
+              colors={[theme.colors.primary]}
+              tintColor={theme.colors.primary}
+            />
+          }
+          showsVerticalScrollIndicator={false}
         >
-          <View style={styles.header}>
-            <Image source={uchihaLogo} style={styles.logo} />
-            <Text style={styles.title}>{i18n.t('home.title')}</Text>
-            <Text style={styles.subtitle}>{i18n.t('home.subtitle')}</Text>
-          </View>
-
-          <Animated.View 
-            style={[
-              styles.quoteContainer, 
-              { 
-                opacity: fadeAnim,
-                transform: [{ scale: scaleAnim }]
-              }
-            ]}
+          <ImageBackground 
+            source={sasukeImage} 
+            style={styles.imageBackground} 
+            imageStyle={styles.backgroundImage}
           >
-            {loading || !quote ? (
-              <QuoteCardSkeleton />
-            ) : (
-              <>
-                <Text style={styles.quoteText}>"{quote.quote}"</Text>
-                {quote.source && (
-                  <Text style={styles.sourceText}>- {quote.source}</Text>
-                )}
-                {quote.context && (
-                  <Text style={styles.contextText}>{quote.context}</Text>
-                )}
-              </>
-            )}
-          </Animated.View>
+            <View style={styles.header}>
+              <Image source={uchihaLogo} style={styles.logo} />
+              <Text style={styles.title}>{i18n.t('home.title')}</Text>
+              <Text style={styles.subtitle}>{i18n.t('home.subtitle')}</Text>
+            </View>
 
-          <View style={styles.buttonRow}>
-            <TouchableOpacity 
-              style={styles.iconButton} 
-              onPress={handleSpeak}
-              disabled={!quote}
-            >
-              <Ionicons name="volume-high-outline" size={26} color={theme.colors.text} />
-            </TouchableOpacity>
-            
-            <TouchableOpacity 
-              style={[styles.mainButton, loading && styles.disabledButton]} 
-              onPress={() => fetchQuote()}
-              disabled={loading}
-            >
-              <Ionicons name="refresh" size={24} color="white" />
-            </TouchableOpacity>
-            
-            <TouchableOpacity 
-              style={styles.iconButton} 
-              onPress={handleFavorite} 
-              disabled={!quote}
-            >
-              <Ionicons 
-                name={isFavorite ? "heart" : "heart-outline"} 
-                size={26} 
-                color={isFavorite ? theme.colors.error : theme.colors.text} 
-              />
-            </TouchableOpacity>
-          </View>
-        </ImageBackground>
-      </ScrollView>
+            <View style={styles.quoteContainer}>
+              {isInitialLoad ? (
+                <View style={styles.loadingContainer}>
+                  <View style={styles.loadingPlaceholder}>
+                    <View style={[styles.loadingLine, { width: '100%' }]} />
+                    <View style={[styles.loadingLine, { width: '80%' }]} />
+                    <View style={[styles.loadingLine, { width: '60%' }]} />
+                  </View>
+                </View>
+              ) : quote ? (
+                <View style={styles.quoteContent}>
+                  <Text style={styles.quoteText}>"{quote.quote}"</Text>
+                  {quote.source && (
+                    <Text style={styles.sourceText}>- {quote.source}</Text>
+                  )}
+                  {quote.context && (
+                    <Text style={styles.contextText}>{quote.context}</Text>
+                  )}
+                </View>
+              ) : null}
+            </View>
+
+            <View style={styles.buttonContainer}>
+              <TouchableOpacity 
+                style={styles.iconButton} 
+                onPress={handleSpeak}
+                disabled={!quote}
+                activeOpacity={0.7}
+              >
+                <Ionicons name="volume-high-outline" size={24} color={theme.colors.text} />
+              </TouchableOpacity>
+              
+              <TouchableOpacity 
+                style={[styles.mainButton, isInitialLoad && styles.disabledButton]} 
+                onPress={() => fetchQuote()}
+                disabled={isInitialLoad}
+                activeOpacity={0.8}
+              >
+                <Ionicons name="refresh" size={28} color="white" />
+              </TouchableOpacity>
+              
+              <TouchableOpacity 
+                style={styles.iconButton} 
+                onPress={handleFavorite} 
+                disabled={!quote}
+                activeOpacity={0.7}
+              >
+                <Ionicons 
+                  name={isFavorite ? "heart" : "heart-outline"} 
+                  size={24} 
+                  color={isFavorite ? theme.colors.error : theme.colors.text} 
+                />
+              </TouchableOpacity>
+            </View>
+          </ImageBackground>
+        </ScrollView>
+      </SafeAreaView>
     </ErrorBoundary>
   );
 }
 
-const createStyles = (theme: Theme) => StyleSheet.create({
+const createStyles = (theme: Theme, themeMode: string) => StyleSheet.create({
   container: { 
     flex: 1, 
     backgroundColor: theme.colors.background 
   },
+  scrollContent: {
+    flexGrow: 1,
+    minHeight: height,
+  },
   imageBackground: { 
-    minHeight: '100%',
+    flex: 1,
     justifyContent: 'space-between', 
     alignItems: 'center',
-    paddingVertical: 60
+    paddingVertical: 20,
+    paddingHorizontal: 20,
+  },
+  backgroundImage: {
+    opacity: themeMode === 'dark' ? 0.08 : 0.04,
+    resizeMode: 'contain'
   },
   header: { 
     alignItems: 'center', 
-    paddingTop: 40 
+    paddingTop: 20,
+    marginBottom: 40,
   },
   logo: { 
-    width: 70, 
-    height: 70, 
+    width: 60, 
+    height: 60, 
     resizeMode: 'contain', 
     marginBottom: 16, 
     opacity: 0.9 
   },
   title: { 
-    fontSize: 38, 
+    fontSize: Math.min(width * 0.09, 36), 
     color: theme.colors.text, 
     fontWeight: 'bold', 
     letterSpacing: 1, 
     textShadowColor: theme.colors.primary, 
-    textShadowRadius: 15,
+    textShadowRadius: 10,
     fontFamily: 'Uchiha',
-    marginBottom: 8
+    marginBottom: 8,
+    textAlign: 'center',
   },
   subtitle: { 
     color: theme.colors.textSecondary, 
     fontSize: 16, 
-    fontStyle: 'italic'
+    fontStyle: 'italic',
+    textAlign: 'center',
+    paddingHorizontal: 20,
   },
   quoteContainer: { 
-    padding: 24, 
-    marginHorizontal: 20, 
-    backgroundColor: theme.colors.card + 'F0', 
+    flex: 1,
+    justifyContent: 'center',
+    width: '100%',
+    paddingHorizontal: 10,
+  },
+  loadingContainer: {
+    padding: 24,
+    backgroundColor: theme.colors.card + 'F5', 
     borderRadius: 20, 
-    minHeight: 160, 
+    minHeight: 180, 
     justifyContent: 'center', 
     borderWidth: 1, 
     borderColor: theme.colors.border,
-    elevation: 5,
+    elevation: 4,
     shadowColor: theme.colors.primary,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 6,
+  },
+  loadingPlaceholder: {
+    gap: 12,
+  },
+  loadingLine: {
+    height: 16,
+    backgroundColor: theme.colors.border,
+    borderRadius: 8,
+    alignSelf: 'center',
+  },
+  quoteContent: {
+    padding: 24, 
+    backgroundColor: theme.colors.card + 'F5', 
+    borderRadius: 20, 
+    minHeight: 180, 
+    justifyContent: 'center', 
+    borderWidth: 1, 
+    borderColor: theme.colors.border,
+    elevation: 4,
+    shadowColor: theme.colors.primary,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 6,
   },
   quoteText: { 
     color: theme.colors.text, 
-    fontSize: 24, 
+    fontSize: Math.min(width * 0.055, 22), 
     fontStyle: 'italic', 
     textAlign: 'center',
-    lineHeight: 32,
-    marginBottom: 12
+    lineHeight: Math.min(width * 0.075, 30),
+    marginBottom: 16,
+    fontWeight: '500',
   },
   sourceText: { 
     color: theme.colors.textSecondary, 
@@ -284,30 +301,41 @@ const createStyles = (theme: Theme) => StyleSheet.create({
     marginTop: 8,
     fontStyle: 'italic'
   },
-  buttonRow: { 
+  buttonContainer: { 
     flexDirection: 'row', 
     alignItems: 'center', 
     justifyContent: 'space-evenly', 
     width: '100%', 
-    paddingHorizontal: 40,
-    marginTop: 30
+    paddingHorizontal: 20,
+    marginTop: 30,
+    marginBottom: 20,
   },
   mainButton: { 
     backgroundColor: theme.colors.primary, 
-    padding: 22, 
-    borderRadius: 60, 
-    elevation: 8, 
+    padding: 20, 
+    borderRadius: 50, 
+    elevation: 6, 
     shadowColor: theme.colors.primary,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.4,
-    shadowRadius: 6
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.3,
+    shadowRadius: 5,
+    minWidth: 70,
+    minHeight: 70,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   disabledButton: {
     opacity: 0.6
   },
   iconButton: { 
-    padding: 18,
-    borderRadius: 50,
-    backgroundColor: theme.colors.card + '80'
+    padding: 16,
+    borderRadius: 40,
+    backgroundColor: theme.colors.card + '90',
+    borderWidth: 1,
+    borderColor: theme.colors.border,
+    minWidth: 56,
+    minHeight: 56,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
 });

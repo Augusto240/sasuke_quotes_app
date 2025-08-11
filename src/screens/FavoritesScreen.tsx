@@ -1,6 +1,5 @@
 import React, { useCallback } from 'react';
 import { View, Text, FlatList, StyleSheet, TouchableOpacity } from 'react-native';
-import { useFocusEffect } from '@react-navigation/native';
 import Toast from 'react-native-toast-message';
 import { useApp } from '../contexts/AppContext';
 import { Quote } from '../models/Quote';

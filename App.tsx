@@ -58,8 +58,8 @@ function AppContent() {
       <StatusBar style={themeMode === 'dark' ? 'light' : 'dark'} />
       <NavigationContainer theme={NavigationTheme}>
         <Tab.Navigator
-          screenOptions={({ route }) => ({
-            tabBarIcon: ({ focused, color, size }) => {
+          screenOptions={({ route }: { route: any }) => ({
+            tabBarIcon: ({ focused, color, size }: { focused: boolean; color: string; size: number }) => {
               let iconName: keyof typeof Ionicons.glyphMap = 'alert-circle';
               if (route.name === i18n.t('navigation.home')) iconName = focused ? 'home' : 'home-outline';
               else if (route.name === i18n.t('navigation.explore')) iconName = focused ? 'list' : 'list-outline';

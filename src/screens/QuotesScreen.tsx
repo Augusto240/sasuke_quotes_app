@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { View, Text, FlatList, TextInput, StyleSheet, TouchableOpacity, RefreshControl, ListRenderItem, Dimensions } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import Toast from 'react-native-toast-message';
 import { getAllQuotes } from '../api/sasukeApi';
 import { Quote } from '../models/Quote';
@@ -15,6 +16,67 @@ import ErrorBoundary from '../components/ErrorBoundary';
 const { width } = Dimensions.get('window');
 
 const categories = ["all", "genin", "shippuden", "flashback"];
+
+// Memoized category button component
+const CategoryButton = React.memo(({ 
+  category, 
+  isSelected, 
+  onPress, 
+  theme 
+}: { 
+  category: string;
+  isSelected: boolean;
+  onPress: (cat: string) => void;
+  theme: Theme;
+}) => (
+  <TouchableOpacity 
+    style={[
+      styles.catBtn(theme), 
+      isSelected && styles.catBtnActive(theme)
+    ]} 
+    onPress={() => onPress(category)}
+    activeOpacity={0.7}
+  >
+    <Text style={[
+      styles.catText(theme), 
+      isSelected && styles.catTextActive
+    ]}>
+      {i18n.t(`quotes.categories.${category}`)}
+    </Text>
+  </TouchableOpacity>
+));
+
+// Memoized quote item component
+const QuoteItem = React.memo(({ 
+  item, 
+  favorites, 
+  onFavoritePress,
+  theme 
+}: { 
+  item: Quote;
+  favorites: Quote[];
+  onFavoritePress: (quote: Quote) => void;
+  theme: Theme;
+}) => {
+  const isFav = favorites.some(fav => fav.id === item.id);
+  
+  return (
+    <View style={styles.cardContainer(theme)}>
+      <QuoteCard quote={item} />
+      <TouchableOpacity 
+        style={styles.favButton(theme)} 
+        onPress={() => onFavoritePress(item)}
+        activeOpacity={0.7}
+      >
+        <Ionicons 
+          name={isFav ? "heart" : "heart-outline"} 
+          size={22} 
+          color={isFav ? theme.colors.error : theme.colors.text} 
+        />
+      </TouchableOpacity>
+    </View>
+  );
+});
 
 export default function QuotesScreen() {
   const { theme: themeMode, favorites, addFavorite, removeFavorite } = useApp();
@@ -83,215 +145,236 @@ export default function QuotesScreen() {
     setRefreshing(true);
     loadData(false);
   }, [loadData]);
+
+  const handleCategoryPress = useCallback((category: string) => {
+    setSelectedCategory(category);
+  }, []);
   
   const filteredQuotes = useMemo(() => {
     return allQuotes
-      .filter(q => selectedCategory === 'all' || q.category.toLowerCase() === selectedCategory)
-      .filter(q => 
-        q.quote.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        q.source.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        q.context.toLowerCase().includes(searchQuery.toLowerCase())
-      );
+      .filter(q => selectedCategory === 'all' || q.category?.toLowerCase() === selectedCategory)
+      .filter(q => {
+        const searchLower = searchQuery.toLowerCase();
+        return q.quote.toLowerCase().includes(searchLower) ||
+               (q.source && q.source.toLowerCase().includes(searchLower)) ||
+               (q.context && q.context.toLowerCase().includes(searchLower));
+      });
   }, [allQuotes, selectedCategory, searchQuery]);
 
-  const renderQuote: ListRenderItem<Quote> = useCallback(({ item }) => {
-    const isFav = favorites.some(fav => fav.id === item.id);
-    return (
-      <View style={styles.cardContainer}>
-        <QuoteCard quote={item} />
-        <TouchableOpacity 
-          style={styles.favButton} 
-          onPress={() => handleFavorite(item)}
-        >
-          <Ionicons 
-            name={isFav ? "heart" : "heart-outline"} 
-            size={24} 
-            color={isFav ? theme.colors.error : theme.colors.text} 
-          />
-        </TouchableOpacity>
-      </View>
-    );
-  }, [favorites, handleFavorite, theme.colors]);
+  const renderQuote: ListRenderItem<Quote> = useCallback(({ item }) => (
+    <QuoteItem 
+      item={item}
+      favorites={favorites}
+      onFavoritePress={handleFavorite}
+      theme={theme}
+    />
+  ), [favorites, handleFavorite, theme]);
 
   const renderCategoryItem = useCallback(({ item: cat }: { item: string }) => (
-    <TouchableOpacity 
-      style={[
-        styles.catBtn, 
-        selectedCategory === cat && styles.catBtnActive
-      ]} 
-      onPress={() => setSelectedCategory(cat)}
-    >
-      <Text style={[
-        styles.catText, 
-        selectedCategory === cat && styles.catTextActive
-      ]}>
-        {i18n.t(`quotes.categories.${cat}`)}
-      </Text>
-    </TouchableOpacity>
-  ), [selectedCategory, theme.colors]);
-
-  const getItemLayout = useCallback((data: any, index: number) => ({
-    length: 160,
-    offset: 160 * index,
-    index,
-  }), []);
+    <CategoryButton 
+      category={cat}
+      isSelected={selectedCategory === cat}
+      onPress={handleCategoryPress}
+      theme={theme}
+    />
+  ), [selectedCategory, handleCategoryPress, theme]);
 
   const keyExtractor = useCallback((item: Quote) => item.id.toString(), []);
-
-  const styles = createStyles(theme);
+  const categoryKeyExtractor = useCallback((item: string) => item, []);
 
   return (
     <ErrorBoundary>
-      <View style={styles.container}>
-        <Text style={styles.title}>{i18n.t('quotes.title')}</Text>
-        
-        <View style={styles.searchContainer}>
-          <TextInput
-            style={styles.searchBar}
-            placeholder={i18n.t('quotes.searchPlaceholder')}
-            placeholderTextColor={theme.colors.textSecondary}
-            value={searchQuery}
-            onChangeText={setSearchQuery}
-          />
-          <TouchableOpacity 
-            style={styles.voiceButton}
-            onPress={handleVoiceSearch}
-            disabled={isListening}
-          >
-            <Ionicons 
-              name={isListening ? "mic" : "mic-outline"} 
-              size={24} 
-              color={isListening ? theme.colors.primary : theme.colors.text} 
+      <SafeAreaView style={styles.container(theme)}>
+        {/* Header fixo */}
+        <View style={styles.headerContainer(theme)}>
+          <Text style={styles.title(theme)}>{i18n.t('quotes.title')}</Text>
+          
+          <View style={styles.searchContainer}>
+            <TextInput
+              style={styles.searchBar(theme)}
+              placeholder={i18n.t('quotes.searchPlaceholder')}
+              placeholderTextColor={theme.colors.textSecondary}
+              value={searchQuery}
+              onChangeText={setSearchQuery}
             />
-          </TouchableOpacity>
+            <TouchableOpacity 
+              style={styles.voiceButton(theme)}
+              onPress={handleVoiceSearch}
+              disabled={isListening}
+              activeOpacity={0.7}
+            >
+              <Ionicons 
+                name={isListening ? "mic" : "mic-outline"} 
+                size={22} 
+                color={isListening ? theme.colors.primary : theme.colors.text} 
+              />
+            </TouchableOpacity>
+          </View>
+
+          <View style={styles.categoryContainer}>
+            <FlatList
+              horizontal
+              data={categories}
+              keyExtractor={categoryKeyExtractor}
+              renderItem={renderCategoryItem}
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.catRow}
+            />
+          </View>
         </View>
 
-        <FlatList
-          horizontal
-          data={categories}
-          keyExtractor={(item) => item}
-          renderItem={renderCategoryItem}
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.catRow}
-        />
-
-        {loading ? (
-          <ListSkeleton />
-        ) : (
-          <FlatList
-            data={filteredQuotes}
-            keyExtractor={keyExtractor}
-            renderItem={renderQuote}
-            getItemLayout={getItemLayout}
-            removeClippedSubviews={true}
-            maxToRenderPerBatch={10}
-            windowSize={10}
-            initialNumToRender={5}
-            refreshControl={
-              <RefreshControl 
-                refreshing={refreshing} 
-                onRefresh={onRefresh}
-                colors={[theme.colors.primary]}
-                tintColor={theme.colors.primary}
-              />
-            }
-            ListEmptyComponent={
-              <Text style={styles.empty}>{i18n.t('quotes.empty')}</Text>
-            }
-            contentContainerStyle={{ paddingBottom: 30 }}
-          />
-        )}
-      </View>
+        {/* Lista de quotes */}
+        <View style={styles.contentContainer}>
+          {loading ? (
+            <ListSkeleton />
+          ) : (
+            <FlatList
+              data={filteredQuotes}
+              keyExtractor={keyExtractor}
+              renderItem={renderQuote}
+              removeClippedSubviews={true}
+              maxToRenderPerBatch={10}
+              windowSize={10}
+              initialNumToRender={8}
+              refreshControl={
+                <RefreshControl 
+                  refreshing={refreshing} 
+                  onRefresh={onRefresh}
+                  colors={[theme.colors.primary]}
+                  tintColor={theme.colors.primary}
+                />
+              }
+              ListEmptyComponent={
+                <View style={styles.emptyContainer}>
+                  <Text style={styles.empty(theme)}>{i18n.t('quotes.empty')}</Text>
+                </View>
+              }
+              contentContainerStyle={styles.listContent}
+              showsVerticalScrollIndicator={false}
+            />
+          )}
+        </View>
+      </SafeAreaView>
     </ErrorBoundary>
   );
 }
 
-const createStyles = (theme: Theme) => StyleSheet.create({
-  container: { 
+const styles = {
+  container: (theme: Theme) => ({
     flex: 1, 
-    paddingTop: 60, 
-    paddingHorizontal: 15, 
-    backgroundColor: theme.colors.background 
-  },
-  title: { 
+    backgroundColor: theme.colors.background,
+  }),
+  headerContainer: (theme: Theme) => ({
+    backgroundColor: theme.colors.background,
+    paddingHorizontal: 16,
+    paddingTop: 10,
+    paddingBottom: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: theme.colors.border + '30',
+  }),
+  title: (theme: Theme) => ({
     color: theme.colors.text, 
     fontSize: 32, 
-    fontWeight: 'bold', 
+    fontWeight: 'bold' as const, 
     marginBottom: 20, 
-    fontFamily: 'Uchiha' 
-  },
+    fontFamily: 'Uchiha',
+  }),
   searchContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 20,
+    flexDirection: 'row' as const,
+    alignItems: 'center' as const,
+    marginBottom: 16,
+    gap: 12,
   },
-  searchBar: { 
+  searchBar: (theme: Theme) => ({
     flex: 1,
     backgroundColor: theme.colors.card, 
     color: theme.colors.text, 
     borderRadius: 12, 
-    padding: 14, 
+    paddingHorizontal: 16,
+    paddingVertical: 14, 
     fontSize: 16,
     borderWidth: 1,
-    borderColor: theme.colors.border
-  },
-  voiceButton: {
-    marginLeft: 12,
+    borderColor: theme.colors.border,
+  }),
+  voiceButton: (theme: Theme) => ({
     padding: 14,
     backgroundColor: theme.colors.card,
     borderRadius: 12,
     borderWidth: 1,
     borderColor: theme.colors.border,
+    alignItems: 'center' as const,
+    justifyContent: 'center' as const,
+    minWidth: 50,
+  }),
+  categoryContainer: {
+    height: 50,
   },
   catRow: { 
     gap: 12, 
-    marginBottom: 20, 
-    paddingRight: 20 
+    paddingRight: 20,
+    alignItems: 'center' as const,
   },
-  catBtn: { 
+  catBtn: (theme: Theme) => ({ 
     backgroundColor: theme.colors.card, 
     borderRadius: 20, 
     paddingHorizontal: 16, 
-    paddingVertical: 8,
+    paddingVertical: 10,
     borderWidth: 1,
-    borderColor: theme.colors.border
-  },
-  catBtnActive: { 
+    borderColor: theme.colors.border,
+    height: 40,
+    justifyContent: 'center' as const,
+    alignItems: 'center' as const,
+  }),
+  catBtnActive: (theme: Theme) => ({ 
     backgroundColor: theme.colors.primary,
-    borderColor: theme.colors.primary
-  },
-  catText: { 
+    borderColor: theme.colors.primary,
+  }),
+  catText: (theme: Theme) => ({ 
     color: theme.colors.textSecondary, 
-    fontWeight: '600' 
-  },
+    fontWeight: '600' as const,
+    fontSize: 14,
+  }),
   catTextActive: { 
     color: '#fff' 
   },
-  empty: { 
-    color: theme.colors.textSecondary, 
-    marginTop: 50, 
-    textAlign: 'center', 
-    fontSize: 16 
+  contentContainer: {
+    flex: 1,
+    paddingHorizontal: 16,
+    paddingTop: 16,
   },
-  cardContainer: { 
-    marginBottom: 12, 
-    borderRadius: 12, 
-    overflow: 'hidden', 
+  emptyContainer: {
+    paddingTop: 60,
+    alignItems: 'center' as const,
+  },
+  empty: (theme: Theme) => ({ 
+    color: theme.colors.textSecondary, 
+    textAlign: 'center' as const, 
+    fontSize: 16,
+  }),
+  cardContainer: (theme: Theme) => ({ 
+    marginBottom: 16, 
+    borderRadius: 14, 
+    overflow: 'hidden' as const, 
     backgroundColor: theme.colors.card, 
     elevation: 2, 
-    position: 'relative',
+    position: 'relative' as const,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
-  },
-  favButton: { 
-    position: 'absolute', 
+  }),
+  favButton: (theme: Theme) => ({ 
+    position: 'absolute' as const, 
     top: 12, 
     right: 12, 
     zIndex: 10, 
-    backgroundColor: theme.colors.background + 'CC', 
-    borderRadius: 24, 
-    padding: 8 
+    backgroundColor: theme.colors.background + 'DD', 
+    borderRadius: 20, 
+    padding: 8,
+    borderWidth: 1,
+    borderColor: theme.colors.border + '50',
+  }),
+  listContent: {
+    paddingBottom: 30,
   },
-});
+};

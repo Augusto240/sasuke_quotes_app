@@ -10,7 +10,6 @@ interface SkeletonProps {
   style?: any;
 }
 
-/** Um item de esqueleto com animação de brilho. */
 export function SkeletonItem({ width = '100%', height = 20, borderRadius = 4, style }: SkeletonProps) {
   const { theme: themeMode } = useApp();
   const theme = themeMode === 'dark' ? darkTheme : lightTheme;
@@ -55,7 +54,6 @@ export function SkeletonItem({ width = '100%', height = 20, borderRadius = 4, st
   );
 }
 
-/** Esqueleto para o card de citação. */
 export function QuoteCardSkeleton() {
   const { theme: themeMode } = useApp();
   const theme = themeMode === 'dark' ? darkTheme : lightTheme;
@@ -70,7 +68,6 @@ export function QuoteCardSkeleton() {
   );
 }
 
-/** Esqueleto para a lista de citações. */
 export function ListSkeleton({ count = 5 }: { count?: number }) {
   return (
     <View>
