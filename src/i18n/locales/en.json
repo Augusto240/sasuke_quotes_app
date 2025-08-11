@@ -1,0 +1,88 @@
+{
+  "navigation": {
+    "home": "Home",
+    "explore": "Explore",
+    "favorites": "Favorites",
+    "camera": "Sharingan",
+    "settings": "Settings"
+  },
+  "home": {
+    "title": "Sasuke's Path",
+    "subtitle": "Shake for new quote",
+    "loading": "Loading...",
+    "shareText": "Sasuke Quote: "
+  },
+  "quotes": {
+    "title": "Explore Quotes",
+    "searchPlaceholder": "Search by keyword...",
+    "categories": {
+      "all": "All",
+      "genin": "Genin",
+      "shippuden": "Shippuden",
+      "flashback": "Flashback"
+    },
+    "loading": "Loading quotes...",
+    "empty": "No quotes found",
+    "pullToRefresh": "Pull to refresh"
+  },
+  "favorites": {
+    "title": "Favorite Quotes",
+    "empty": "No favorite quotes yet.",
+    "removed": "Removed from favorites",
+    "added": "Added to favorites!"
+  },
+  "camera": {
+    "permissionTitle": "Camera Permission",
+    "permissionMessage": "Camera permission is required to use Sharingan Vision.",
+    "grantPermission": "Grant Permission"
+  },
+  "editor": {
+    "save": "Save",
+    "share": "Share",
+    "newPhoto": "New Photo",
+    "saved": "Saved to gallery!",
+    "shareUnavailable": "Sharing unavailable.",
+    "permissionDenied": "Gallery permission denied."
+  },
+  "settings": {
+    "title": "Settings",
+    "notifications": "Daily notification",
+    "time": "Time",
+    "theme": "Theme",
+    "language": "Language",
+    "about": "About",
+    "version": "Version",
+    "notificationSuccess": "Daily notifications scheduled for {time}h.",
+    "notificationDisabled": "Daily notifications disabled.",
+    "permissionDenied": "Could not enable notifications.",
+    "info": "Receive a random Sasuke quote every day."
+  },
+  "onboarding": {
+    "welcome": "Welcome to",
+    "step1Title": "Inspiring Quotes",
+    "step1Description": "Discover memorable quotes from Sasuke Uchiha",
+    "step2Title": "Favorite and Share",
+    "step2Description": "Save your favorite quotes and share with friends",
+    "step3Title": "Sharingan Vision",
+    "step3Description": "Take photos and add thematic overlays",
+    "step4Title": "Shake for Surprise",
+    "step4Description": "Shake your phone to discover new quotes",
+    "skip": "Skip",
+    "next": "Next",
+    "finish": "Get Started"
+  },
+  "common": {
+    "error": "Error",
+    "success": "Success",
+    "cancel": "Cancel",
+    "ok": "OK",
+    "retry": "Retry",
+    "loading": "Loading...",
+    "noConnection": "No internet connection"
+  },
+  "voice": {
+    "listening": "Listening...",
+    "noPermission": "Microphone permission denied",
+    "error": "Voice recognition error"
+  }
+}

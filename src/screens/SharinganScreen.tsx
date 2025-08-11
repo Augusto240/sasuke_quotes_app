@@ -3,6 +3,7 @@ import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { CameraView, useCameraPermissions } from 'expo-camera';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
+import ErrorBoundary from '../components/ErrorBoundary';
 
 export default function SharinganScreen() {
   const cameraRef = useRef<CameraView>(null);
@@ -10,7 +11,7 @@ export default function SharinganScreen() {
   const navigation = useNavigation<any>();
 
   useEffect(() => {
-    if (!permission) {
+    if (!permission?.granted) {
       requestPermission();
     }
   }, [permission]);
@@ -36,14 +37,16 @@ export default function SharinganScreen() {
   }
 
   return (
-    <View style={styles.container}>
-      <CameraView ref={cameraRef} style={styles.camera} facing="back" />
-      <View style={styles.buttonContainer}>
-        <TouchableOpacity style={styles.captureButton} onPress={takePhoto}>
-          <Ionicons name="ellipse-outline" size={80} color="white" />
-        </TouchableOpacity>
+    <ErrorBoundary>
+      <View style={styles.container}>
+        <CameraView ref={cameraRef} style={styles.camera} facing="back" />
+        <View style={styles.buttonContainer}>
+          <TouchableOpacity style={styles.captureButton} onPress={takePhoto}>
+            <Ionicons name="ellipse-outline" size={80} color="white" />
+          </TouchableOpacity>
+        </View>
       </View>
-    </View>
+    </ErrorBoundary>
   );
 }
 

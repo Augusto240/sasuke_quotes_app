@@ -1,5 +1,5 @@
 import React, { useRef, useState, useEffect } from 'react';
-import { View, Text, StyleSheet, ImageBackground, ActivityIndicator, Image, Alert, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, ImageBackground, ActivityIndicator, Image, Alert, TouchableOpacity, Dimensions } from 'react-native';
 import ViewShot from 'react-native-view-shot';
 import * as Sharing from 'expo-sharing';
 import * as MediaLibrary from 'expo-media-library';
@@ -9,14 +9,19 @@ import Animated, { useSharedValue, useAnimatedStyle, withSpring } from 'react-na
 import { getRandomQuote } from '../api/sasukeApi';
 import { Quote } from '../models/Quote';
 import { Ionicons } from '@expo/vector-icons';
+import { useApp } from '../contexts/AppContext';
+import { darkTheme, lightTheme, Theme } from '../theme';
+
+const { width, height } = Dimensions.get('window');
 
 const stickers = {
   sharingan: require('../../assets/images/sharingan.png'),
-  rinnegan: require('../../assets/images/rinnegan.png'),
   uchiha: require('../../assets/images/uchiha.png'),
 };
 
 export default function ImageEditorScreen({ route, navigation }: any) {
+  const { theme: themeMode } = useApp();
+  const theme = themeMode === 'dark' ? darkTheme : lightTheme;
   const { imageUri } = route.params;
   const [quote, setQuote] = useState<Quote | null>(null);
   const [textColor, setTextColor] = useState('#FFFFFF');
@@ -78,11 +83,16 @@ export default function ImageEditorScreen({ route, navigation }: any) {
   useEffect(() => { fetchNewQuote(); }, []);
 
   const onShare = async () => {
-    const uri = await viewShotRef.current?.capture?.();
-    if (uri && (await Sharing.isAvailableAsync())) {
-      await Sharing.shareAsync(uri);
-    } else {
-      Alert.alert('Partilha não disponível.');
+    try {
+      const uri = await viewShotRef.current?.capture?.();
+      if (uri && (await Sharing.isAvailableAsync())) {
+        await Sharing.shareAsync(uri);
+      } else {
+        Alert.alert('Partilha não disponível.');
+      }
+    } catch (e) {
+      console.error('Erro ao partilhar:', e);
+      Alert.alert('Erro ao partilhar', 'Não foi possível partilhar a imagem.');
     }
   };
 
@@ -91,12 +101,19 @@ export default function ImageEditorScreen({ route, navigation }: any) {
       Alert.alert('Permissão da galeria negada.');
       return;
     }
-    const uri = await viewShotRef.current?.capture?.();
-    if (uri) {
-      await MediaLibrary.saveToLibraryAsync(uri);
-      Toast.show({ type: 'success', text1: 'Salvo na galeria!' });
+    try {
+      const uri = await viewShotRef.current?.capture?.();
+      if (uri) {
+        await MediaLibrary.saveToLibraryAsync(uri);
+        Toast.show({ type: 'success', text1: 'Salvo na galeria!' });
+      }
+    } catch (e) {
+      console.error('Erro ao salvar:', e);
+      Alert.alert('Erro ao salvar', 'Não foi possível salvar a imagem.');
     }
   };
+
+  const styles = createStyles(theme);
 
   return (
     <View style={styles.container}>
@@ -153,22 +170,88 @@ export default function ImageEditorScreen({ route, navigation }: any) {
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#101010' },
+const createStyles = (theme: Theme) => StyleSheet.create({
+  container: { flex: 1, backgroundColor: theme.colors.background },
   viewShot: { flex: 1 },
   image: { flex: 1, resizeMode: 'cover' },
   stickerContainer: { position: 'absolute', top: '25%', left: '40%' },
   sticker: { width: 80, height: 80 },
-  quoteOverlay: { position: 'absolute', bottom: 0, left: 0, right: 0, backgroundColor: 'rgba(0, 0, 0, 0.6)', padding: 20, justifyContent: 'center', minHeight: '25%' },
-  quoteText: { fontFamily: 'Uchiha', fontSize: 24, textAlign: 'center', textShadowColor: '#000', textShadowOffset: { width: 1, height: 1 }, textShadowRadius: 5 },
-  controlsContainer: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 15, paddingVertical: 10, backgroundColor: '#181818' },
-  stickerSelector: { flexDirection: 'row', gap: 10 },
-  stickerPreview: { width: 30, height: 30, borderRadius: 15, borderWidth: 2, borderColor: 'transparent' },
-  activeSticker: { borderColor: '#e31b3a' },
-  colorPalette: { flexDirection: 'row', alignItems: 'center' },
-  colorButton: { width: 30, height: 30, borderRadius: 15, marginHorizontal: 5, borderWidth: 2, borderColor: '#fff' },
-  controlButton: { padding: 10 },
-  buttonRow: { flexDirection: 'row', justifyContent: 'space-around', alignItems: 'center', paddingVertical: 20, backgroundColor: '#181818', borderTopWidth: 1, borderTopColor: '#27272a' },
-  btn: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#e31b3a', paddingVertical: 11, paddingHorizontal: 18, borderRadius: 30 },
-  btnText: { color: 'white', marginLeft: 8, fontWeight: 'bold', fontSize: 15 },
+  quoteOverlay: { 
+    position: 'absolute', 
+    bottom: 0, 
+    left: 0, 
+    right: 0, 
+    backgroundColor: 'rgba(0, 0, 0, 0.6)', 
+    padding: 20, 
+    justifyContent: 'center', 
+    minHeight: '25%' 
+  },
+  quoteText: { 
+    fontFamily: 'Uchiha', 
+    fontSize: 24, 
+    textAlign: 'center', 
+    textShadowColor: '#000', 
+    textShadowOffset: { width: 1, height: 1 }, 
+    textShadowRadius: 5 
+  },
+  controlsContainer: { 
+    flexDirection: 'row', 
+    justifyContent: 'space-between', 
+    alignItems: 'center', 
+    paddingHorizontal: 15, 
+    paddingVertical: 10, 
+    backgroundColor: theme.colors.card 
+  },
+  stickerSelector: { 
+    flexDirection: 'row', 
+    gap: 10 
+  },
+  stickerPreview: { 
+    width: 30, 
+    height: 30, 
+    borderRadius: 15, 
+    borderWidth: 2, 
+    borderColor: 'transparent' 
+  },
+  activeSticker: { 
+    borderColor: theme.colors.primary 
+  },
+  colorPalette: { 
+    flexDirection: 'row', 
+    alignItems: 'center' 
+  },
+  colorButton: { 
+    width: 30, 
+    height: 30, 
+    borderRadius: 15, 
+    marginHorizontal: 5, 
+    borderWidth: 2, 
+    borderColor: theme.colors.text 
+  },
+  controlButton: { 
+    padding: 10 
+  },
+  buttonRow: { 
+    flexDirection: 'row', 
+    justifyContent: 'space-around', 
+    alignItems: 'center', 
+    paddingVertical: 20, 
+    backgroundColor: theme.colors.card, 
+    borderTopWidth: 1, 
+    borderTopColor: theme.colors.border 
+  },
+  btn: { 
+    flexDirection: 'row', 
+    alignItems: 'center', 
+    backgroundColor: theme.colors.primary, 
+    paddingVertical: 11, 
+    paddingHorizontal: 18, 
+    borderRadius: 30 
+  },
+  btnText: { 
+    color: 'white', 
+    marginLeft: 8, 
+    fontWeight: 'bold', 
+    fontSize: 15 
+  },
 });

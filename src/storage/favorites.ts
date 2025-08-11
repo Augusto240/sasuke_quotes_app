@@ -1,3 +1,6 @@
+// Não será mais usado diretamente, a lógica de favorites foi centralizada em AppContext
+// Apenas mantido para referência, mas pode ser removido do seu projeto.
+
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Quote } from '../models/Quote';
 

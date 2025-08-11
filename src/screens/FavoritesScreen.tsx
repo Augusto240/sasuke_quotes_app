@@ -1,54 +1,84 @@
-import React, { useState, useCallback } from 'react';
+import React, { useCallback } from 'react';
 import { View, Text, FlatList, StyleSheet, TouchableOpacity } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import Toast from 'react-native-toast-message';
-import { getFavorites, removeFavorite } from '../storage/favorites';
+import { useApp } from '../contexts/AppContext';
 import { Quote } from '../models/Quote';
 import QuoteCard from '../components/QuoteCard';
 import { Ionicons } from '@expo/vector-icons';
+import { darkTheme, lightTheme, Theme } from '../theme';
+import i18n from '../i18n';
+import ErrorBoundary from '../components/ErrorBoundary';
 
 export default function FavoritesScreen() {
-  const [quotes, setQuotes] = useState<Quote[]>([]);
+  const { theme: themeMode, favorites, removeFavorite } = useApp();
+  const theme = themeMode === 'dark' ? darkTheme : lightTheme;
 
-  const loadFavs = async () => setQuotes(await getFavorites());
+  const handleRemove = useCallback((id: number) => {
+    removeFavorite(id);
+    Toast.show({
+      type: 'info',
+      text1: i18n.t('favorites.removed'),
+    });
+  }, [removeFavorite]);
 
-  useFocusEffect(useCallback(() => { loadFavs(); }, []));
-
-  const handleRemove = async (id: number) => {
-    await removeFavorite(id);
-    Toast.show({ type: 'info', text1: 'Removido dos favoritos' });
-    loadFavs();
-  };
-
-  const renderFavorite = ({ item }: { item: Quote }) => (
+  const renderFavorite = useCallback(({ item }: { item: Quote }) => (
     <View style={styles.row}>
       <View style={{ flex: 1 }}>
         <QuoteCard quote={item} />
       </View>
       <TouchableOpacity style={styles.removeBtn} onPress={() => handleRemove(item.id)}>
-        <Ionicons name="trash-outline" size={22} color="#e31b3a" />
+        <Ionicons name="trash-outline" size={22} color={theme.colors.error} />
       </TouchableOpacity>
     </View>
-  );
+  ), [handleRemove, theme]);
+
+  const styles = createStyles(theme);
 
   return (
-    <View style={styles.container}>
-      <Text style={styles.title}>Citações Favoritas</Text>
-      <FlatList
-        data={quotes}
-        keyExtractor={q => q.id.toString()}
-        renderItem={renderFavorite}
-        ListEmptyComponent={<Text style={styles.empty}>Nenhuma citação favoritada ainda.</Text>}
-        contentContainerStyle={{ paddingBottom: 30 }}
-      />
-    </View>
+    <ErrorBoundary>
+      <View style={styles.container}>
+        <Text style={styles.title}>{i18n.t('favorites.title')}</Text>
+        <FlatList
+          data={favorites}
+          keyExtractor={q => q.id.toString()}
+          renderItem={renderFavorite}
+          ListEmptyComponent={<Text style={styles.empty}>{i18n.t('favorites.empty')}</Text>}
+          contentContainerStyle={{ paddingBottom: 30 }}
+        />
+      </View>
+    </ErrorBoundary>
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, paddingTop: 60, paddingHorizontal: 15, backgroundColor: '#101010' },
-  title: { color: '#fff', fontSize: 32, fontWeight: 'bold', marginBottom: 14, fontFamily: 'Uchiha' },
-  empty: { color: '#bbb', marginTop: 30, textAlign: 'center', fontSize: 16 },
-  row: { flexDirection: 'row', alignItems: 'center' },
-  removeBtn: { marginLeft: 10, padding: 8, backgroundColor: '#181818', borderRadius: 24 },
+const createStyles = (theme: Theme) => StyleSheet.create({
+  container: {
+    flex: 1,
+    paddingTop: 60,
+    paddingHorizontal: 15,
+    backgroundColor: theme.colors.background
+  },
+  title: {
+    color: theme.colors.text,
+    fontSize: 32,
+    fontWeight: 'bold',
+    marginBottom: 14,
+    fontFamily: 'Uchiha'
+  },
+  empty: {
+    color: theme.colors.textSecondary,
+    marginTop: 30,
+    textAlign: 'center',
+    fontSize: 16
+  },
+  row: {
+    flexDirection: 'row',
+    alignItems: 'center'
+  },
+  removeBtn: {
+    marginLeft: 10,
+    padding: 8,
+    backgroundColor: theme.colors.card,
+    borderRadius: 24
+  },
 });

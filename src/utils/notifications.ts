@@ -12,6 +12,7 @@ export async function scheduleDailyQuoteNotification(time: Date, quote: Quote) {
     hour: time.getHours(),
     minute: time.getMinutes(),
     repeats: true,
+    type: Notifications.SchedulableTriggerInputTypes.CALENDAR
   };
   await Notifications.scheduleNotificationAsync({
     content: {

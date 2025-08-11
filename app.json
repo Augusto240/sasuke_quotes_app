@@ -38,7 +38,9 @@
           "savePhotosPermission": "Permitir que o Sasuke's Path salve imagens na sua galeria.",
           "isAccessMediaLocationEnabled": true
         }
-      ]
+      ],
+      "expo-localization",
+      "expo-speech-recognition"
     ]
   }
 }

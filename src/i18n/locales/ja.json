@@ -1,0 +1,88 @@
+{
+  "navigation": {
+    "home": "ホーム",
+    "explore": "探索",
+    "favorites": "お気に入り",
+    "camera": "写輪眼",
+    "settings": "設定"
+  },
+  "home": {
+    "title": "サスケの道",
+    "subtitle": "振って新しい名言を",
+    "loading": "読み込み中...",
+    "shareText": "サスケの名言: "
+  },
+  "quotes": {
+    "title": "名言を探索",
+    "searchPlaceholder": "キーワードで検索...",
+    "categories": {
+      "all": "すべて",
+      "genin": "下忍",
+      "shippuden": "疾風伝",
+      "flashback": "回想"
+    },
+    "loading": "名言を読み込み中...",
+    "empty": "名言が見つかりません",
+    "pullToRefresh": "引っ張って更新"
+  },
+  "favorites": {
+    "title": "お気に入りの名言",
+    "empty": "まだお気に入りの名言がありません。",
+    "removed": "お気に入りから削除",
+    "added": "お気に入りに追加！"
+  },
+  "camera": {
+    "permissionTitle": "カメラの許可",
+    "permissionMessage": "写輪眼ビジョンを使用するには、カメラの許可が必要です。",
+    "grantPermission": "許可を与える"
+  },
+  "editor": {
+    "save": "保存",
+    "share": "共有",
+    "newPhoto": "新しい写真",
+    "saved": "ギャラリーに保存されました！",
+    "shareUnavailable": "共有できません。",
+    "permissionDenied": "ギャラリーの許可が拒否されました。"
+  },
+  "settings": {
+    "title": "設定",
+    "notifications": "毎日の通知",
+    "time": "時間",
+    "theme": "テーマ",
+    "language": "言語",
+    "about": "について",
+    "version": "バージョン",
+    "notificationSuccess": "{time}時に毎日の通知がスケジュールされました。",
+    "notificationDisabled": "毎日の通知が無効になりました。",
+    "permissionDenied": "通知を有効にできませんでした。",
+    "info": "毎日ランダムなサスケの名言を受け取る。"
+  },
+  "onboarding": {
+    "welcome": "ようこそ",
+    "step1Title": "感動的な名言",
+    "step1Description": "うちはサスケの心に残る名言を発見",
+    "step2Title": "お気に入りと共有",
+    "step2Description": "好きな名言を保存して友達と共有",
+    "step3Title": "写輪眼ビジョン",
+    "step3Description": "写真を撮ってテーマオーバーレイを追加",
+    "step4Title": "振ってサプライズ",
+    "step4Description": "携帯を振って新しい名言を発見",
+    "skip": "スキップ",
+    "next": "次へ",
+    "finish": "開始"
+  },
+  "common": {
+    "error": "エラー",
+    "success": "成功",
+    "cancel": "キャンセル",
+    "ok": "OK",
+    "retry": "再試行",
+    "loading": "読み込み中...",
+    "noConnection": "インターネット接続なし"
+  },
+  "voice": {
+    "listening": "聞いています...",
+    "noPermission": "マイクの許可が拒否されました",
+    "error": "音声認識エラー"
+  }
+}

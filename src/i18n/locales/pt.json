@@ -1,0 +1,88 @@
+{
+  "navigation": {
+    "home": "Início",
+    "explore": "Explorar",
+    "favorites": "Favoritos",
+    "camera": "Sharingan",
+    "settings": "Ajustes"
+  },
+  "home": {
+    "title": "Sasuke's Path",
+    "subtitle": "Agite para nova citação",
+    "loading": "Carregando...",
+    "shareText": "Citação do Sasuke: "
+  },
+  "quotes": {
+    "title": "Explorar Citações",
+    "searchPlaceholder": "Buscar por palavra-chave...",
+    "categories": {
+      "all": "Todas",
+      "genin": "Genin",
+      "shippuden": "Shippuden",
+      "flashback": "Flashback"
+    },
+    "loading": "Carregando citações...",
+    "empty": "Nenhuma citação encontrada",
+    "pullToRefresh": "Puxe para atualizar"
+  },
+  "favorites": {
+    "title": "Citações Favoritas",
+    "empty": "Nenhuma citação favoritada ainda.",
+    "removed": "Removido dos favoritos",
+    "added": "Adicionado aos favoritos!"
+  },
+  "camera": {
+    "permissionTitle": "Permissão da Câmera",
+    "permissionMessage": "A permissão da câmera é necessária para usar a Visão do Sharingan.",
+    "grantPermission": "Conceder Permissão"
+  },
+  "editor": {
+    "save": "Salvar",
+    "share": "Partilhar",
+    "newPhoto": "Nova Foto",
+    "saved": "Salvo na galeria!",
+    "shareUnavailable": "Partilha não disponível.",
+    "permissionDenied": "Permissão da galeria negada."
+  },
+  "settings": {
+    "title": "Configurações",
+    "notifications": "Notificação diária",
+    "time": "Horário",
+    "theme": "Tema",
+    "language": "Idioma",
+    "about": "Sobre",
+    "version": "Versão",
+    "notificationSuccess": "Notificações diárias agendadas para as {time}h.",
+    "notificationDisabled": "Notificações diárias desativadas.",
+    "permissionDenied": "Não foi possível ativar notificações.",
+    "info": "Receba uma citação aleatória do Sasuke todos os dias."
+  },
+  "onboarding": {
+    "welcome": "Bem-vindo ao",
+    "step1Title": "Citações Inspiradoras",
+    "step1Description": "Descubra frases marcantes do Sasuke Uchiha",
+    "step2Title": "Favoritar e Compartilhar",
+    "step2Description": "Salve suas citações preferidas e compartilhe com amigos",
+    "step3Title": "Sharingan Vision",
+    "step3Description": "Tire fotos e adicione overlays temáticos",
+    "step4Title": "Shake para Surpresa",
+    "step4Description": "Agite o celular para descobrir novas citações",
+    "skip": "Pular",
+    "next": "Próximo",
+    "finish": "Começar"
+  },
+  "common": {
+    "error": "Erro",
+    "success": "Sucesso",
+    "cancel": "Cancelar",
+    "ok": "OK",
+    "retry": "Tentar novamente",
+    "loading": "Carregando...",
+    "noConnection": "Sem conexão com a internet"
+  },
+  "voice": {
+    "listening": "Ouvindo...",
+    "noPermission": "Permissão de microfone negada",
+    "error": "Erro no reconhecimento de voz"
+  }
+}
