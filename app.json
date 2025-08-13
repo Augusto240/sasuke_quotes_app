@@ -58,16 +58,11 @@
           "isAccessMediaLocationEnabled": true
         }
       ],
-      "expo-localization",
-      "expo-speech-recognition"
+      "expo-localization"
     ],
-    "assetBundlePatterns": [
-      "**/*"
-    ],
+    "assetBundlePatterns": ["**/*"],
     "extra": {
-      "eas": {
-        "projectId": "4bc0066d-1263-4cd0-8e80-96fe28859750"
-      }
+      "eas": { "projectId": "4bc0066d-1263-4cd0-8e80-96fe28859750" }
     },
     "owner": "auggie22"
   }
